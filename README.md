@@ -1,4 +1,8 @@
-# tstack
+# astack
+
+A fork of [tstack](https://github.com/t3dotgg/tstack) with
+[pstack's](https://github.com/cursor/plugins/tree/main/pstack) `unslop` skill
+added.
 
 The agent skills I use every day, cleaned up so anyone can use them. They work
 in Claude Code, Codex, [pi](https://github.com/badlogic/pi-mono), and
@@ -18,6 +22,7 @@ in Claude Code, Codex, [pi](https://github.com/badlogic/pi-mono), and
 | `takeover` | "take over" | Finishes someone else's PR, branch, or agent thread, and keeps their credit. |
 | `babysit-pr` | "babysit" | Watches a PR through CI and review bots, and fixes the real findings. |
 | `modernize` | "modernize" | Rebases an old PR and decides if it should still exist. |
+| `unslop` | "unslop" | Cuts AI tells from prose: docs, PR descriptions, commit messages, comments. |
 | `leaving-pr-comments` | (automatic) | Formats comments that an agent posts on your behalf. |
 
 Some skills call others. Install the ones they need too:
@@ -26,15 +31,16 @@ Some skills call others. Install the ones they need too:
 - `full-stop` uses `full-send`.
 - `takeover` uses `modernize`, `file-pr`, `babysit-pr`, and `leaving-pr-comments`.
 - `file-pr`, `babysit-pr`, and `modernize` use `leaving-pr-comments`.
+- `file-pr` uses `unslop`.
 
 ## Install
 
 ```bash
-git clone https://github.com/t3dotgg/tstack
-cp -R tstack/skills/* ~/.claude/skills/   # Claude Code
-cp -R tstack/skills/* ~/.codex/skills/    # Codex
-cp -R tstack/skills/* ~/.pi/agent/skills/ # pi
-cp -R tstack/skills/* ~/.cursor/skills/   # Cursor agent
+git clone https://github.com/albertcwong/astack
+cp -R astack/skills/* ~/.claude/skills/   # Claude Code
+cp -R astack/skills/* ~/.codex/skills/    # Codex
+cp -R astack/skills/* ~/.pi/agent/skills/ # pi
+cp -R astack/skills/* ~/.cursor/skills/   # Cursor agent
 ```
 
 ## Requirements
@@ -54,4 +60,4 @@ skills without losing them.
 
 ## License
 
-[MIT](LICENSE)
+[MIT](LICENSE). `unslop` is adapted from pstack, MIT, copyright 2026 Lauren Tan.
