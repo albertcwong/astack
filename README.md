@@ -2,7 +2,8 @@
 
 A fork of [tstack](https://github.com/t3dotgg/tstack) with
 [pstack's](https://github.com/cursor/plugins/tree/main/pstack) `unslop` skill
-added.
+and Matt Pocock's [`grill-me` and `wait-what`](https://github.com/mattpocock/skills/tree/main/skills/productivity)
+skills added.
 
 The agent skills I use every day, cleaned up so anyone can use them. They work
 in Claude Code, Codex, [pi](https://github.com/badlogic/pi-mono), and
@@ -23,6 +24,8 @@ in Claude Code, Codex, [pi](https://github.com/badlogic/pi-mono), and
 | `babysit-pr` | "babysit" | Watches a PR through CI and review bots, and fixes the real findings. |
 | `modernize` | "modernize" | Rebases an old PR and decides if it should still exist. |
 | `unslop` | "unslop" | Cuts AI tells from prose: docs, PR descriptions, commit messages, comments. |
+| `grill-me` | "grill me" | Interviews you in rounds, with a recommended answer for each question, until every decision in a plan is settled. |
+| `wait-what` | "wait what" | Re-pitches the last message with context, in short plain sentences. |
 | `leaving-pr-comments` | (automatic) | Formats comments that an agent posts on your behalf. |
 
 Some skills call others. Install the ones they need too:
@@ -61,3 +64,5 @@ skills without losing them.
 ## License
 
 [MIT](LICENSE). `unslop` is adapted from pstack, MIT, copyright 2026 Lauren Tan.
+`grill-me` and `wait-what` are adapted from mattpocock/skills, MIT, copyright
+2026 Matt Pocock.

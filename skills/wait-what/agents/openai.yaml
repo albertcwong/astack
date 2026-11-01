@@ -1,0 +1,4 @@
+interface:
+  display_name: "Wait What"
+  short_description: "Re-pitch that: simpler, with the context I'm missing"
+  default_prompt: "Use $wait-what. I didn't follow your last message."
