@@ -1,0 +1,4 @@
+interface:
+  display_name: "Maintain Verification Skill"
+  short_description: "Audit the verify-<app> skill and its feature map"
+  default_prompt: "Use $maintain-verification-skill to audit this repo's verify skill."

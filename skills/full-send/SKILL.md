@@ -71,9 +71,11 @@ reproduction, a screenshot. Use the most direct proof the change allows:
 - Run the checks that the repo's CI runs (typecheck, lint, tests).
 - Add one focused test that fails without the fix, when the behavior has none
   and the repo has a test setup.
-- For UI and runtime behavior, run the app and look at the change. Green mocked
-  tests do not prove that the user experience works. Attach screenshots to the
-  PR when they help and you have a way to upload them.
+- For UI and runtime behavior, run the app and look at the change. If the
+  repo has a project `verify-<app>` skill, follow it to launch, drive, and
+  capture evidence. Green mocked tests do not prove that the user experience
+  works. Attach screenshots to the PR when they help and you have a way to
+  upload them.
 
 When you cannot find a way to prove a change, you do not have full confidence.
 Ask the user.
