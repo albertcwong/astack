@@ -1,9 +1,10 @@
 # astack
 
-A fork of [tstack](https://github.com/t3dotgg/tstack) with
-[pstack's](https://github.com/cursor/plugins/tree/main/pstack) `unslop` skill
-and Matt Pocock's [`grill-me` and `wait-what`](https://github.com/mattpocock/skills/tree/main/skills/productivity)
-skills added.
+A fork of [tstack](https://github.com/t3dotgg/tstack) with added skills:
+`unslop`, `create-verification-skill`, and `maintain-verification-skill` from
+[pstack](https://github.com/cursor/plugins/tree/main/pstack), and `grill-me`
+and `wait-what` from
+[mattpocock/skills](https://github.com/mattpocock/skills/tree/main/skills/productivity).
 
 The agent skills I use every day, cleaned up so anyone can use them. They work
 in Claude Code, Codex, [pi](https://github.com/badlogic/pi-mono), and
@@ -26,6 +27,8 @@ in Claude Code, Codex, [pi](https://github.com/badlogic/pi-mono), and
 | `unslop` | "unslop" | Cuts AI tells from prose: docs, PR descriptions, commit messages, comments. |
 | `grill-me` | "grill me" | Interviews you in rounds, with a recommended answer for each question, until every decision in a plan is settled. |
 | `wait-what` | "wait what" | Re-pitches the last message with context, in short plain sentences. |
+| `create-verification-skill` | "create verification skill" | Writes a project `verify-<app>` skill that launches the app, drives it like a user, and captures proof. |
+| `maintain-verification-skill` | "maintain verification skill" | Checks a `verify-<app>` skill against the source and the live app, and files one PR of fixes. |
 | `leaving-pr-comments` | (automatic) | Formats comments that an agent posts on your behalf. |
 
 Some skills call others. Install the ones they need too:
@@ -35,6 +38,8 @@ Some skills call others. Install the ones they need too:
 - `takeover` uses `modernize`, `file-pr`, `babysit-pr`, and `leaving-pr-comments`.
 - `file-pr`, `babysit-pr`, and `modernize` use `leaving-pr-comments`.
 - `file-pr` uses `unslop`.
+- `full-send` uses a project's `verify-<app>` skill when it has one.
+- `maintain-verification-skill` uses `file-pr`.
 
 ## Install
 
@@ -63,6 +68,7 @@ skills without losing them.
 
 ## License
 
-[MIT](LICENSE). `unslop` is adapted from pstack, MIT, copyright 2026 Lauren Tan.
+[MIT](LICENSE). `unslop` and the verification skills are adapted from pstack,
+MIT, copyright 2026 Lauren Tan.
 `grill-me` and `wait-what` are adapted from mattpocock/skills, MIT, copyright
 2026 Matt Pocock.
