@@ -38,8 +38,7 @@ Some skills call others. Install the ones they need too:
 - `file-pr`, `babysit-pr`, and `modernize` use `leaving-pr-comments`.
 - `file-pr` uses `unslop`.
 - `full-send` uses a project's `verify-<app>` skill when it has one.
-- `create-verification-skill` and `maintain-verification-skill` use `file-pr`.
-  `maintain-verification-skill` also uses `unslop`.
+- `maintain-verification-skill` uses `file-pr` and `unslop`.
 
 ## Install
 

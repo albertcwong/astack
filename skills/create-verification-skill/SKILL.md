@@ -131,9 +131,7 @@ fresh VM, a local stack in place of a remote one), list every setup step the
 stand-in did that the target will not. Those steps stay unverified until a run
 on the real target covers them.
 
-## 6. Ship it and hand off
+## 6. Offer the maintenance loop
 
-Commit the skill with any symlinks from step 2. If the user wants a PR, use
-the `file-pr` skill. Then point the user at `maintain-verification-skill` for
-keeping the map accurate as the app changes. Suggest a schedule only if they
-ask.
+Point the user at `maintain-verification-skill` for keeping the map accurate as
+the app changes. Suggest a schedule only if they ask.
