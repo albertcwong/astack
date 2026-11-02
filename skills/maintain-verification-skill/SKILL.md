@@ -101,8 +101,8 @@ docs).
    - App behavior that's broken is a product gap. Record it for the user and
      keep it out of this PR.
 
-6. **Ship or stop.** For `changed`, re-read every changed file, run the prose
-   through `unslop`, and open one PR with the `file-pr` skill. For `clean` or
+6. **Ship or stop.** For `changed`, re-read every changed file, then open one
+   PR with the `file-pr` skill. For `clean` or
    `blocked`, open no PR. Report the outcome and the coverage honestly.
 
 Keep short run notes (features covered, unreachable prerequisites, confirmed

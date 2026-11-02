@@ -1,9 +1,10 @@
 # astack
 
-A fork of [tstack](https://github.com/t3dotgg/tstack) with
-[pstack's](https://github.com/cursor/plugins/tree/main/pstack) `unslop`,
-`create-verification-skill`, and `maintain-verification-skill` skills, and Matt Pocock's [`grill-me` and `wait-what`](https://github.com/mattpocock/skills/tree/main/skills/productivity)
-skills added.
+A fork of [tstack](https://github.com/t3dotgg/tstack) with added skills:
+`unslop`, `create-verification-skill`, and `maintain-verification-skill` from
+[pstack](https://github.com/cursor/plugins/tree/main/pstack), and `grill-me`
+and `wait-what` from
+[mattpocock/skills](https://github.com/mattpocock/skills/tree/main/skills/productivity).
 
 The agent skills I use every day, cleaned up so anyone can use them. They work
 in Claude Code, Codex, [pi](https://github.com/badlogic/pi-mono), and
@@ -38,7 +39,7 @@ Some skills call others. Install the ones they need too:
 - `file-pr`, `babysit-pr`, and `modernize` use `leaving-pr-comments`.
 - `file-pr` uses `unslop`.
 - `full-send` uses a project's `verify-<app>` skill when it has one.
-- `maintain-verification-skill` uses `file-pr` and `unslop`.
+- `maintain-verification-skill` uses `file-pr`.
 
 ## Install
 
@@ -67,6 +68,7 @@ skills without losing them.
 
 ## License
 
-[MIT](LICENSE). `unslop` and the verification skills are adapted from pstack, MIT, copyright 2026 Lauren Tan.
+[MIT](LICENSE). `unslop` and the verification skills are adapted from pstack,
+MIT, copyright 2026 Lauren Tan.
 `grill-me` and `wait-what` are adapted from mattpocock/skills, MIT, copyright
 2026 Matt Pocock.
