@@ -1,0 +1,4 @@
+interface:
+  display_name: "Idea Refine"
+  short_description: "Shape a vague idea into a one-pager"
+  default_prompt: "Use $idea-refine to turn this rough idea into a sharp, actionable concept."

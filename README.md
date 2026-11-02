@@ -1,10 +1,14 @@
 # astack
 
-A fork of [tstack](https://github.com/t3dotgg/tstack) with added skills:
-`unslop`, `create-verification-skill`, and `maintain-verification-skill` from
-[pstack](https://github.com/cursor/plugins/tree/main/pstack), and `grill-me`
-and `wait-what` from
-[mattpocock/skills](https://github.com/mattpocock/skills/tree/main/skills/productivity).
+A fork of [tstack](https://github.com/t3dotgg/tstack) with added skills from:
+
+- [pstack](https://github.com/cursor/plugins/tree/main/pstack): `unslop`,
+  `create-verification-skill`, and `maintain-verification-skill`.
+- [mattpocock/skills](https://github.com/mattpocock/skills/tree/main/skills/productivity):
+  `grill-me` and `wait-what`.
+- [addyosmani/agent-skills](https://github.com/addyosmani/agent-skills):
+  `code-review-and-quality`, `code-simplification`, `context-engineering`,
+  `idea-refine`, and `ci-cd-and-automation`.
 
 The agent skills I use every day, cleaned up so anyone can use them. They work
 in Claude Code, Codex, [pi](https://github.com/badlogic/pi-mono), and
@@ -29,6 +33,11 @@ in Claude Code, Codex, [pi](https://github.com/badlogic/pi-mono), and
 | `wait-what` | "wait what" | Re-pitches the last message with context, in short plain sentences. |
 | `create-verification-skill` | "create verification skill" | Writes a project `verify-<app>` skill that launches the app, drives it like a user, and captures proof. |
 | `maintain-verification-skill` | "maintain verification skill" | Checks a `verify-<app>` skill against the source and the live app, and files one PR of fixes. |
+| `code-review-and-quality` | "review this" | Reviews a change on five axes (correctness, readability, architecture, security, performance) with labeled severities. |
+| `code-simplification` | "simplify this" | Makes working code easier to read without changing behavior, one tested step at a time. |
+| `context-engineering` | (automatic) | Sets up rules files and manages what the agent keeps in context during long sessions. |
+| `idea-refine` | "refine this idea" | Expands a vague idea into options, stress-tests them, and writes a one-pager with a "Not doing" list. |
+| `ci-cd-and-automation` | (automatic) | Sets up CI quality gates, deploy strategies, and rollback, and feeds CI failures back to the agent. |
 | `leaving-pr-comments` | (automatic) | Formats comments that an agent posts on your behalf. |
 
 Some skills call others. Install the ones they need too:
@@ -40,6 +49,9 @@ Some skills call others. Install the ones they need too:
 - `file-pr` uses `unslop`.
 - `full-send` uses a project's `verify-<app>` skill when it has one.
 - `maintain-verification-skill` uses `file-pr`.
+- `code-review-and-quality` uses `council` or `sol-loop` for multi-model review,
+  `file-pr`, and `leaving-pr-comments`.
+- `idea-refine` hands off to `grill-me` once you pick a direction.
 
 ## Install
 
@@ -71,4 +83,6 @@ skills without losing them.
 [MIT](LICENSE). `unslop` and the verification skills are adapted from pstack,
 MIT, copyright 2026 Lauren Tan.
 `grill-me` and `wait-what` are adapted from mattpocock/skills, MIT, copyright
-2026 Matt Pocock.
+2026 Matt Pocock. `code-review-and-quality`, `code-simplification`,
+`context-engineering`, `idea-refine`, and `ci-cd-and-automation` are adapted
+from addyosmani/agent-skills, MIT, copyright 2025 Addy Osmani.

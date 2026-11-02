@@ -1,0 +1,4 @@
+interface:
+  display_name: "Code Review and Quality"
+  short_description: "Multi-axis review before merge"
+  default_prompt: "Use $code-review-and-quality to review this diff before it merges."
