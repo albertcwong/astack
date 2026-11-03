@@ -5,9 +5,12 @@ description: File a concise pull request. Use when the user asks to file, open, 
 
 # File PR
 
-Before filing, check whether a PR for this branch already exists. Review the
-diff locally against the base branch (usually `origin/main`) to make sure its
-contents match the goal.
+Before filing, read the project's AGENTS.md, CONTRIBUTING.md and linked release
+rules to determine the approved base for this change type. Do not assume the
+repository's default branch or `main`. If the target is unclear, ask. Check whether
+a PR for this branch already exists. Review the diff against the approved base
+and verify any existing PR targets that branch. Pass `--base <approved-target>`
+explicitly when creating a PR, then verify its actual base and head on GitHub.
 
 PR titles usually become commit messages, so follow the repository's title
 conventions. Look at recently merged PRs and Git history for examples. Prefer a

@@ -94,7 +94,11 @@ narrows code.
 
 ## Base branch and merging
 
-Keep an eye on changes to `main` and rebase when needed. `pr-wait` reports when
+Read the project's contribution/release rules and verify the PR's actual base
+matches the approved target for this change type; never assume `main` or the
+default branch. A wrong base blocks readiness and merging even if checks pass.
+Follow changes to that approved target and update the branch when needed,
+preserving shared history. `pr-wait` reports when
 new base commits touch this PR's files, and when the PR becomes BEHIND or DIRTY.
 If an overlapping PR makes this one obsolete, stop monitoring, report it to the
 user, and ask before closing the PR unless closure was explicitly authorized.
@@ -102,6 +106,6 @@ user, and ask before closing the PR unless closure was explicitly authorized.
 If nothing has changed, stay quiet rather than posting filler comments. Stop
 when `pr-wait` exits 0. Merge only when the user explicitly requested it;
 otherwise report that the PR is ready. Right before a merge, run `git fetch` and
-check the PR again. Never merge when it is BEHIND or DIRTY, or when base commits
+check the live PR's repository, base and tested head again against project policy. Never merge when it is BEHIND or DIRTY, or when base commits
 that landed after the last green run touch this PR's files. Rebase, push, and
 wait for green again.
