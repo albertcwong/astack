@@ -4,8 +4,8 @@ A fork of [tstack](https://github.com/t3dotgg/tstack) with added skills from:
 
 - [pstack](https://github.com/cursor/plugins/tree/main/pstack): `unslop`,
   `create-verification-skill`, and `maintain-verification-skill`.
-- [mattpocock/skills](https://github.com/mattpocock/skills/tree/main/skills/productivity):
-  `grill-me`, `wait-what`, and `track-issue`.
+- [mattpocock/skills](https://github.com/mattpocock/skills):
+  `grill-me`, `wait-what`, `track-issue`, and `to-tickets`.
 - [addyosmani/agent-skills](https://github.com/addyosmani/agent-skills):
   `code-review-and-quality`, `code-simplification`, `context-engineering`,
   `idea-refine`, and `ci-cd-and-automation`.
@@ -39,6 +39,7 @@ in Claude Code, Codex, [pi](https://github.com/badlogic/pi-mono), and
 | `context-engineering` | (automatic) | Sets up rules files and manages what the agent keeps in context during long sessions. |
 | `idea-refine` | "refine this idea" | Expands a vague idea into options, stress-tests them, and writes a one-pager with a "Not doing" list. |
 | `ci-cd-and-automation` | (automatic) | Sets up CI quality gates, deploy strategies, and rollback, and feeds CI failures back to the agent. |
+| `to-tickets` | "split this into tickets" | Breaks an issue, plan, or conversation into small verifiable tickets with blockers, then publishes the approved breakdown. |
 | `track-issue` | "track this", "sync the board" | Finds or creates the issue for each change and keeps its Project Status current, setting it from the PR when you don't. |
 | `leaving-pr-comments` | (automatic) | Formats comments that an agent posts on your behalf. |
 
@@ -58,6 +59,9 @@ Some skills call others. Install the ones they need too:
 - `code-review-and-quality` uses `council` or `sol-loop` for multi-model review,
   `file-pr`, and `leaving-pr-comments`.
 - `idea-refine` hands off to `grill-me` once you pick a direction.
+- `to-tickets` uses `track-issue` to publish unassigned backlog tickets with parent
+  and blocker relationships. It can use `idea-refine` or `grill-me` when the
+  outcome or design still needs work. No upstream setup skill is required.
 
 ## Install
 
@@ -90,7 +94,7 @@ skills without losing them.
 
 [MIT](LICENSE). `unslop` and the verification skills are adapted from pstack,
 MIT, copyright 2026 Lauren Tan.
-`grill-me`, `wait-what`, and `track-issue` are adapted from mattpocock/skills, MIT, copyright
-2026 Matt Pocock. `code-review-and-quality`, `code-simplification`,
+`grill-me`, `wait-what`, `track-issue`, and `to-tickets` are adapted from
+mattpocock/skills, MIT, copyright 2026 Matt Pocock. `code-review-and-quality`, `code-simplification`,
 `context-engineering`, `idea-refine`, and `ci-cd-and-automation` are adapted
 from addyosmani/agent-skills, MIT, copyright 2025 Addy Osmani.

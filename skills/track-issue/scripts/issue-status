@@ -3,6 +3,7 @@
 
   issue-status find <terms...>
   issue-status show <issue>...
+  issue-status create --title "..." --body-file FILE [--parent <issue>] [--blocked-by <issue>]...
   issue-status start <issue>
   issue-status start --title "..." --body-file FILE [--parent <issue>]
   issue-status set <issue> "<status>"
@@ -14,6 +15,7 @@ current checkout.
 Automatic stages
   When nobody sets a status by hand, the work decides it:
     open issue on the board with no status   -> new      (default Backlog)
+    create (unassigned, with optional blockers) -> new
     start                                    -> started  (default In progress)
     linked PR is a draft                     -> started
     linked PR is open                        -> review   (default In review)
@@ -39,9 +41,9 @@ keyed by repo:
    "before": ["Backlog", "Planned"]}}
 Without "project", the repo's only linked Project is used.
 
-Writes: creating an issue, self-assignment on start, adding an issue to the
-Project, and the Status field. It never comments, closes, labels or edits
-issue bodies. Needs gh with the `project` scope (gh auth refresh -s project).
+Writes: creating an issue with optional parent/blocker relationships,
+self-assignment on start, adding an issue to the Project, and the Status field.
+It never comments, closes, labels or edits issue bodies. Needs gh with the `project` scope (gh auth refresh -s project).
 
 Exit codes: 0 done, 1 a gh call or a lookup failed, 2 bad arguments.
 """
@@ -284,13 +286,30 @@ def cmd_show(args, repo, board):
         print(line(issue, f"would set {target}" if target else None, note))
 
 
+def create_issue(args, repo):
+    command = ["issue", "create", "-R", repo, "--title", args.title, "--body-file", args.body_file]
+    if args.parent:
+        command += ["--parent", str(args.parent)]
+    blockers = getattr(args, "blocked_by", [])
+    if blockers:
+        command += ["--blocked-by", ",".join(str(number) for number in blockers)]
+    return int(gh(*command).strip().rsplit("/", 1)[-1])
+
+
+def cmd_create(args, repo, board):
+    # Validate the configured status before creating anything on GitHub.
+    board.option(board.cfg["new"])
+    number = create_issue(args, repo)
+    print(f"Created https://github.com/{repo}/issues/{number}", flush=True)
+    issue = board.issues({number}).get(number)
+    if not issue:
+        raise Failure(f"#{number} was created but could not be read; inspect it before retrying")
+    board.write(issue, board.cfg["new"])
+    print(line(issue, None, "created; unassigned"))
+
+
 def cmd_start(args, repo, board):
-    number = args.issue
-    if args.title:
-        create = ["issue", "create", "-R", repo, "--title", args.title, "--body-file", args.body_file]
-        if args.parent:
-            create += ["--parent", str(args.parent)]
-        number = int(gh(*create).strip().rsplit("/", 1)[-1])
+    number = create_issue(args, repo) if args.title else args.issue
     issue = board.issues({number}).get(number)
     if not issue:
         raise Failure(f"#{number} is not an issue in {repo}")
@@ -358,6 +377,11 @@ def main() -> None:
     sub = parser.add_subparsers(dest="command", required=True)
     sub.add_parser("find").add_argument("terms", nargs="+")
     sub.add_parser("show").add_argument("issues", nargs="+", type=int)
+    create = sub.add_parser("create", help="Create unassigned planning work in the configured new status")
+    create.add_argument("--title", required=True)
+    create.add_argument("--body-file", required=True)
+    create.add_argument("--parent", type=int)
+    create.add_argument("--blocked-by", type=int, action="append", default=[], metavar="ISSUE")
     start = sub.add_parser("start")
     start.add_argument("issue", nargs="?", type=int)
     start.add_argument("--title")
@@ -375,6 +399,10 @@ def main() -> None:
         parser.error("start takes an issue number or --title with --body-file")
     if args.command == "start" and args.title and not args.body_file:
         parser.error("--title needs --body-file")
+    if args.command == "create":
+        related = [args.parent, *args.blocked_by]
+        if any(number <= 0 for number in related if number is not None):
+            parser.error("parent and blocker issue numbers must be positive")
     try:
         repo = repo_of(args)
         board = Board(repo, config(repo))

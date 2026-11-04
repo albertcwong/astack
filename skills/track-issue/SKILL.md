@@ -11,14 +11,16 @@ convention (MIT).
 Every change has an issue, and the issue's Project Status says where the work
 really is. When the user does not set a status, the work sets it. Use
 `scripts/issue-status` from this skill's directory (use its absolute path) for
-every read and write. Do not hand-write Project mutations or option IDs.
+issue creation, parent/blocker relationships and Project reads and writes.
+Read issue bodies and comments with `gh issue view`. Do not hand-write Project
+mutations or option IDs.
 
 ## What this skill may write
 
 Invoking this skill authorizes, for the current repository only: creating an
-issue, assigning it to yourself, adding it to the Project, and setting its
-Status. Comments, closing, labels, milestones and body edits still need the
-user's explicit request. Project rules on comments and closing take
+issue, attaching its parent and blockers, assigning it to yourself when work
+starts, adding it to the Project, and setting its Status. Comments, closing,
+labels, milestones and body edits still need the user's explicit request. Project rules on comments and closing take
 precedence. If a write is blocked by a harness, permission or rate limit,
 keep working, keep the change on a pending list, and report it at handoff
 with the exact command to run.
@@ -42,6 +44,24 @@ command.
 
 Then tell the user in one line: `Tracking #N (<title>). Status: In progress.`
 
+## Create planned work
+
+The `to-tickets` skill plans breakdowns and uses this helper to publish them.
+Publish future work with:
+
+```bash
+issue-status --repo owner/name create --title "..." --body-file <file> --parent <n> --blocked-by <n>
+```
+
+Both relationship flags are optional; repeat `--blocked-by` for multiple
+blockers. Check `gh issue create --help` for support before using relationship
+flags. Use issue-body links and disclose them if native relationships are
+unavailable. `create` validates the configured new status, creates the issue,
+prints its URL, and adds it to the Project in that status (Backlog by default).
+It leaves the issue unassigned and does not start implementation. `start`
+continues to mean work has begun. If creation succeeds but a later step fails,
+inspect the printed issue URL before retrying so you do not create a duplicate.
+
 ## During the work
 
 Put `Closes #N` in the PR description for the issue the PR finishes. Use
@@ -54,6 +74,7 @@ after each of these:
 
 | Event | Status |
 | --- | --- |
+| `create` | Backlog (configured new status) |
 | `start` | In progress |
 | Draft PR filed | In progress |
 | PR filed or ready for review | In review |
