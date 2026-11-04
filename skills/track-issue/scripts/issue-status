@@ -1,0 +1,387 @@
+#!/usr/bin/env python3
+"""issue-status: keep issues and their GitHub Project Status in step with the work.
+
+  issue-status find <terms...>
+  issue-status show <issue>...
+  issue-status start <issue>
+  issue-status start --title "..." --body-file FILE [--parent <issue>]
+  issue-status set <issue> "<status>"
+  issue-status sync [<issue>...] [--since YYYY-MM-DD] [--apply]
+
+Every command takes --repo owner/name; without it the repo comes from the
+current checkout.
+
+Automatic stages
+  When nobody sets a status by hand, the work decides it:
+    open issue on the board with no status   -> new      (default Backlog)
+    start                                    -> started  (default In progress)
+    linked PR is a draft                     -> started
+    linked PR is open                        -> review   (default In review)
+    linked PR merged                         -> merged   (default Merged)
+  A PR links an issue with "Closes/Fixes/Resolves #N" in its body (any base
+  branch) or through GitHub's closing references. "Refs/Related/Part of #N"
+  mentions a parent and never changes its status.
+
+  Automatic changes only move forward through: no status, the `before`
+  statuses (default Backlog, Planned, Ready, Todo), started, review, merged.
+  Any other status (Blocked, Ready for user review, User accepted, Will Not
+  Do, ...) was set by a person, so automatic changes keep it. `set` writes
+  any status; use it only for a status the user named.
+
+sync is a dry run unless --apply is given. Without issue numbers it checks
+PRs merged since --since (default 14 days ago), every open PR, and board
+items with no status. It also lists merged or open PRs that link no issue.
+
+Config (optional): ~/.config/track-issue/config.json, or $TRACK_ISSUE_CONFIG,
+keyed by repo:
+  {"owner/name": {"project": "org/2", "field": "Status", "new": "Backlog",
+   "started": "In progress", "review": "In review", "merged": "Merged",
+   "before": ["Backlog", "Planned"]}}
+Without "project", the repo's only linked Project is used.
+
+Writes: creating an issue, self-assignment on start, adding an issue to the
+Project, and the Status field. It never comments, closes, labels or edits
+issue bodies. Needs gh with the `project` scope (gh auth refresh -s project).
+
+Exit codes: 0 done, 1 a gh call or a lookup failed, 2 bad arguments.
+"""
+
+from __future__ import annotations
+
+import argparse
+import datetime as dt
+import json
+import os
+import re
+import subprocess
+import sys
+from pathlib import Path
+
+DEFAULTS = {
+    "field": "Status",
+    "new": "Backlog",
+    "started": "In progress",
+    "review": "In review",
+    "merged": "Merged",
+    "before": ["Backlog", "Planned", "Ready", "Todo"],
+}
+PR_FIELDS = "number,title,body,state,isDraft,baseRefName,closingIssuesReferences"
+ISSUE_REF = r"(?:https://github\.com/[\w.-]+/[\w.-]+/issues/|#)(\d+)"
+LINK = re.compile(
+    r"\b(close[sd]?|fix(?:e[sd])?|resolve[sd]?|refs?|related(?:\s+to)?|part\s+of)\b[\s:]*"
+    rf"((?:{ISSUE_REF}(?:\s*(?:,|and|&)\s*)?)+)",
+    re.I,
+)
+
+
+class Failure(Exception):
+    pass
+
+
+def gh(*args: str) -> str:
+    proc = subprocess.run(["gh", *args], capture_output=True, text=True)
+    if proc.returncode:
+        lines = proc.stderr.strip().splitlines()
+        raise Failure(f"gh {' '.join(args[:2])}: {lines[-1] if lines else f'exit {proc.returncode}'}")
+    return proc.stdout
+
+
+def graphql(query: str, **variables: object) -> dict:
+    args = ["api", "graphql", "-f", f"query={query}"]
+    for key, value in variables.items():
+        if value is not None:
+            args += ["-F" if isinstance(value, int) else "-f", f"{key}={value}"]
+    proc = subprocess.run(["gh", *args], capture_output=True, text=True)
+    try:
+        body = json.loads(proc.stdout)
+    except json.JSONDecodeError:
+        body = {}
+    # A missing issue number is a NOT_FOUND error next to usable data.
+    errors = [e for e in body.get("errors", []) if e.get("type") != "NOT_FOUND"]
+    if errors or not body.get("data"):
+        message = errors[0]["message"] if errors else proc.stderr.strip() or "no data"
+        raise Failure(f"graphql: {message}")
+    return body["data"]
+
+
+def config(repo: str) -> dict:
+    path = Path(os.environ.get("TRACK_ISSUE_CONFIG", Path.home() / ".config/track-issue/config.json"))
+    cfg = dict(DEFAULTS)
+    if path.exists():
+        cfg.update(json.loads(path.read_text()).get(repo, {}))
+    return cfg
+
+
+def automatic(cfg: dict) -> list[str | None]:
+    """Statuses automatic changes may leave, in lifecycle order."""
+    order: list[str | None] = [None]
+    for name in [*cfg["before"], cfg["started"], cfg["review"], cfg["merged"]]:
+        if name.lower() not in order:
+            order.append(name.lower())
+    return order
+
+
+class Board:
+    def __init__(self, repo: str, cfg: dict):
+        self.repo, self.cfg = repo, cfg
+        owner, name = repo.split("/")
+        if cfg.get("project"):
+            login, number = cfg["project"].rsplit("/", 1)
+            q = "query($o:String!,$n:Int!){repositoryOwner(login:$o){... on ProjectV2Owner{projectV2(number:$n){id title}}}}"
+            project = (graphql(q, o=login, n=int(number))["repositoryOwner"] or {}).get("projectV2")
+            if not project:
+                raise Failure(f"project {cfg['project']} not found")
+        else:
+            q = "query($o:String!,$r:String!){repository(owner:$o,name:$r){projectsV2(first:5){nodes{id title}}}}"
+            nodes = graphql(q, o=owner, r=name)["repository"]["projectsV2"]["nodes"]
+            if len(nodes) != 1:
+                raise Failure(f"{repo} links {len(nodes)} projects; set \"project\" in the config")
+            project = nodes[0]
+        self.id, self.title = project["id"], project["title"]
+        q = "query($id:ID!,$f:String!){node(id:$id){... on ProjectV2{field(name:$f){... on ProjectV2SingleSelectField{id options{id name}}}}}}"
+        field = graphql(q, id=self.id, f=cfg["field"])["node"]["field"]
+        if not field or "options" not in field:
+            raise Failure(f"no single-select field {cfg['field']!r} on {self.title}")
+        self.field = field["id"]
+        self.options = {o["name"].lower(): o for o in field["options"]}
+
+    def option(self, name: str) -> dict:
+        if name.lower() not in self.options:
+            known = ", ".join(o["name"] for o in self.options.values())
+            raise Failure(f"{self.title} has no {self.cfg['field']} {name!r}; it has: {known}")
+        return self.options[name.lower()]
+
+    def issues(self, numbers: set[int]) -> dict[int, dict]:
+        owner, name = self.repo.split("/")
+        fname = json.dumps(self.cfg["field"])
+        found: dict[int, dict] = {}
+        ordered = sorted(numbers)
+        for start in range(0, len(ordered), 40):
+            chunk = ordered[start:start + 40]
+            parts = " ".join(
+                f"i{n}:issueOrPullRequest(number:{n}){{... on Issue{{id number title state "
+                f"projectItems(first:20){{nodes{{id project{{id}} fieldValueByName(name:{fname})"
+                f"{{... on ProjectV2ItemFieldSingleSelectValue{{name}}}}}}}}}}}}"
+                for n in chunk
+            )
+            q = f"query($o:String!,$r:String!){{repository(owner:$o,name:$r){{{parts}}}}}"
+            data = graphql(q, o=owner, r=name)["repository"]
+            for n in chunk:
+                node = data.get(f"i{n}") or {}
+                if not node.get("id"):
+                    continue  # a pull request, or no such number
+                item = next((i for i in node["projectItems"]["nodes"] if i["project"]["id"] == self.id), None)
+                found[n] = {
+                    "number": n, "id": node["id"], "title": node["title"], "state": node["state"],
+                    "item": item and item["id"],
+                    "status": item and (item["fieldValueByName"] or {}).get("name"),
+                }
+        return found
+
+    def without_status(self) -> set[int]:
+        q = (
+            "query($id:ID!,$f:String!,$after:String){node(id:$id){... on ProjectV2{items(first:100,after:$after)"
+            "{pageInfo{hasNextPage endCursor} nodes{fieldValueByName(name:$f){... on ProjectV2ItemFieldSingleSelectValue{name}}"
+            " content{... on Issue{number state repository{nameWithOwner}}}}}}}}"
+        )
+        numbers, after = set(), None
+        while True:
+            items = graphql(q, id=self.id, f=self.cfg["field"], after=after)["node"]["items"]
+            for node in items["nodes"]:
+                content = node["content"] or {}
+                if content.get("repository", {}).get("nameWithOwner") == self.repo and not node["fieldValueByName"]:
+                    numbers.add(content["number"])
+            if not items["pageInfo"]["hasNextPage"]:
+                return numbers
+            after = items["pageInfo"]["endCursor"]
+
+    def write(self, issue: dict, status: str) -> None:
+        option = self.option(status)["id"]
+        if not issue["item"]:
+            q = "mutation($p:ID!,$c:ID!){addProjectV2ItemById(input:{projectId:$p,contentId:$c}){item{id}}}"
+            issue["item"] = graphql(q, p=self.id, c=issue["id"])["addProjectV2ItemById"]["item"]["id"]
+        q = (
+            "mutation($p:ID!,$i:ID!,$f:ID!,$o:String!){updateProjectV2ItemFieldValue(input:"
+            "{projectId:$p,itemId:$i,fieldId:$f,value:{singleSelectOptionId:$o}}){projectV2Item{id}}}"
+        )
+        graphql(q, p=self.id, i=issue["item"], f=self.field, o=option)
+        issue["status"] = self.option(status)["name"]
+
+
+def links(pr: dict) -> tuple[set[int], set[int]]:
+    closes, refs = set(), set()
+    for match in LINK.finditer(pr.get("body") or ""):
+        numbers = {int(n) for n in re.findall(ISSUE_REF, match.group(2))}
+        is_ref = match.group(1).lower().startswith(("ref", "rel", "part"))
+        (refs if is_ref else closes).update(numbers)
+    closes |= {ref["number"] for ref in pr.get("closingIssuesReferences") or []}
+    return closes, refs - closes
+
+
+def prs_for(repo: str, number: int) -> list[dict]:
+    found = json.loads(gh("pr", "list", "-R", repo, "--state", "all", "--search", f"{number} in:body",
+                          "--json", PR_FIELDS, "--limit", "50"))
+    return [pr for pr in found if number in links(pr)[0]]
+
+
+def infer(issue: dict, prs: list[dict], cfg: dict) -> tuple[str | None, str]:
+    def first(state: str, draft: bool | None = None) -> dict | None:
+        return next((p for p in prs if p["state"] == state and (draft is None or p["isDraft"] == draft)), None)
+
+    if pr := first("MERGED"):
+        return cfg["merged"], f"PR #{pr['number']} merged into {pr['baseRefName']}"
+    if pr := first("OPEN", False):
+        return cfg["review"], f"PR #{pr['number']} is open"
+    if pr := first("OPEN", True):
+        return cfg["started"], f"PR #{pr['number']} is a draft"
+    if issue["state"] == "OPEN" and not issue["status"]:
+        return cfg["new"], "open with no status and no PR"
+    return None, "no linked PR"
+
+
+def decide(issue: dict, target: str | None, reason: str, cfg: dict) -> tuple[str | None, str]:
+    order = automatic(cfg)
+    current = issue["status"].lower() if issue["status"] else None
+    if current not in order:
+        return None, f"kept {issue['status']}: set by a person ({reason})"
+    if target is None:
+        if issue["state"] == "CLOSED":
+            return None, f"closed but {issue['status'] or 'has no status'}, and {reason}: set it yourself"
+        return None, reason
+    if order.index(target.lower()) <= order.index(current):
+        return None, f"already {issue['status']} ({reason})"
+    return target, reason
+
+
+def line(issue: dict, change: str | None, note: str) -> str:
+    head = f"#{issue['number']} {issue['state'].lower()} {issue['status'] or 'no status'}"
+    tail = f" -> {change} ({note})" if change else f": {note}"
+    return f"{head}{tail}  {issue['title'][:60]}"
+
+
+def repo_of(args: argparse.Namespace) -> str:
+    return args.repo or gh("repo", "view", "--json", "nameWithOwner", "--jq", ".nameWithOwner").strip()
+
+
+def cmd_find(args, repo, board):
+    found = json.loads(gh("issue", "list", "-R", repo, "--state", "all", "--search", " ".join(args.terms),
+                          "--json", "number", "--limit", "10"))
+    issues = board.issues({i["number"] for i in found})
+    for issue in sorted(issues.values(), key=lambda i: -i["number"]):
+        print(line(issue, None, "match"))
+    if not issues:
+        print("no matching issue")
+
+
+def cmd_show(args, repo, board):
+    issues = board.issues(set(args.issues))
+    for number in args.issues:
+        if number not in issues:
+            print(f"#{number}: not an issue in {repo}")
+            continue
+        issue = issues[number]
+        target, note = decide(issue, *infer(issue, prs_for(repo, number), board.cfg), board.cfg)
+        print(line(issue, f"would set {target}" if target else None, note))
+
+
+def cmd_start(args, repo, board):
+    number = args.issue
+    if args.title:
+        create = ["issue", "create", "-R", repo, "--title", args.title, "--body-file", args.body_file]
+        if args.parent:
+            create += ["--parent", str(args.parent)]
+        number = int(gh(*create).strip().rsplit("/", 1)[-1])
+    issue = board.issues({number}).get(number)
+    if not issue:
+        raise Failure(f"#{number} is not an issue in {repo}")
+    gh("issue", "edit", str(number), "-R", repo, "--add-assignee", "@me")
+    target, note = decide(issue, board.cfg["started"], "started", board.cfg)
+    before = issue["status"] or "no status"
+    if target:
+        board.write(issue, target)
+    print(f"#{number} {before} -> {issue['status']}  {issue['title'][:60]}" if target else line(issue, None, note))
+
+
+def cmd_set(args, repo, board):
+    issue = board.issues({args.issue}).get(args.issue)
+    if not issue:
+        raise Failure(f"#{args.issue} is not an issue in {repo}")
+    before = issue["status"] or "no status"
+    board.write(issue, args.status)
+    print(f"#{args.issue} {before} -> {issue['status']}  {issue['title'][:60]}")
+
+
+def cmd_sync(args, repo, board):
+    cfg = board.cfg
+    by_issue: dict[int, list[dict]] = {}
+    unlinked: list[dict] = []
+    if args.issues:
+        for number in args.issues:
+            by_issue[number] = prs_for(repo, number)
+        extra: set[int] = set()
+    else:
+        since = args.since or (dt.date.today() - dt.timedelta(days=14)).isoformat()
+        prs = json.loads(gh("pr", "list", "-R", repo, "--state", "merged", "--search", f"merged:>={since}",
+                            "--json", PR_FIELDS, "--limit", "200"))
+        prs += json.loads(gh("pr", "list", "-R", repo, "--state", "open", "--json", PR_FIELDS, "--limit", "200"))
+        for pr in prs:
+            closes, refs = links(pr)
+            for number in closes:
+                by_issue.setdefault(number, []).append(pr)
+            if not closes and not refs:
+                unlinked.append(pr)
+        extra = board.without_status()
+    issues = board.issues(set(by_issue) | extra)
+    failed = False
+    for number in sorted(issues):
+        issue = issues[number]
+        target, note = decide(issue, *infer(issue, by_issue.get(number, []), cfg), cfg)
+        if target and args.apply:
+            try:
+                board.write(issue, target)
+                note = f"set: {note}"
+            except Failure as err:
+                failed, note = True, f"NOT SET, {err}"
+        print(line(issue, target, note))
+    for pr in unlinked:
+        print(f"PR #{pr['number']} {pr['state'].lower()} links no issue  {pr['title'][:60]}")
+    if not args.apply:
+        print("dry run: add --apply to write")
+    if failed:
+        raise Failure("some statuses were not set")
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser(prog="issue-status", description="Keep issues and Project Status in step with the work.")
+    parser.add_argument("--repo")
+    sub = parser.add_subparsers(dest="command", required=True)
+    sub.add_parser("find").add_argument("terms", nargs="+")
+    sub.add_parser("show").add_argument("issues", nargs="+", type=int)
+    start = sub.add_parser("start")
+    start.add_argument("issue", nargs="?", type=int)
+    start.add_argument("--title")
+    start.add_argument("--body-file")
+    start.add_argument("--parent", type=int)
+    setter = sub.add_parser("set")
+    setter.add_argument("issue", type=int)
+    setter.add_argument("status")
+    sync = sub.add_parser("sync")
+    sync.add_argument("issues", nargs="*", type=int)
+    sync.add_argument("--since")
+    sync.add_argument("--apply", action="store_true")
+    args = parser.parse_args()
+    if args.command == "start" and bool(args.issue) == bool(args.title):
+        parser.error("start takes an issue number or --title with --body-file")
+    if args.command == "start" and args.title and not args.body_file:
+        parser.error("--title needs --body-file")
+    try:
+        repo = repo_of(args)
+        board = Board(repo, config(repo))
+        globals()[f"cmd_{args.command}"](args, repo, board)
+    except Failure as err:
+        print(f"issue-status: {err}", file=sys.stderr)
+        sys.exit(1)
+
+
+if __name__ == "__main__":
+    main()

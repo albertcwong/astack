@@ -65,7 +65,8 @@ one appears.
 
 ## Steps
 
-1. **Finish the change.** Complete the goal from the user's request with the
+1. **Finish the change.** Run the `track-issue` skill first, so the work has an
+   issue and its status is In progress. Complete the goal from the user's request with the
    smallest change that works. Fix the case that happened, not every case
    that could. Create an owned topic branch from the project-approved starting
    point; never implement ordinary work directly on an integration/release branch.
@@ -79,7 +80,8 @@ one appears.
    failures. Get proof for each fix before you push it.
 6. **Merge** when the merge gate passes.
 7. **Report** in your final message: the PR link, the merge commit, your proof,
-   and each decision you made for the user.
+   each decision you made for the user, and the issue status line from
+   `track-issue`.
 
 Stay active from step 1 to step 7. If you end your turn while checks or bots are
 pending, the work stops, because nobody will prompt you again. Wait with the

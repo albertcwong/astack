@@ -1,0 +1,4 @@
+interface:
+  display_name: "Unslop"
+  short_description: "Cut AI tells from prose"
+  default_prompt: "Use $unslop on this text."

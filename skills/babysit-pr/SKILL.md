@@ -103,8 +103,9 @@ new base commits touch this PR's files, and when the PR becomes BEHIND or DIRTY.
 If an overlapping PR makes this one obsolete, stop monitoring, report it to the
 user, and ask before closing the PR unless closure was explicitly authorized.
 
-If nothing has changed, stay quiet rather than posting filler comments. Stop
-when `pr-wait` exits 0. Merge only when the user explicitly requested it;
+If nothing has changed, stay quiet rather than posting filler comments. When
+`pr-wait` reports a merge, run `track-issue`'s `issue-status sync <N> --apply`
+for the issues the PR closes. Stop when `pr-wait` exits 0. Merge only when the user explicitly requested it;
 otherwise report that the PR is ready. Right before a merge, run `git fetch` and
 check the live PR's repository, base and tested head again against project policy. Never merge when it is BEHIND or DIRTY, or when base commits
 that landed after the last green run touch this PR's files. Rebase, push, and

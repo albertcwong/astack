@@ -45,6 +45,11 @@ Run the title and description through the `unslop` skill. Before submission,
 check the title, description, quotes, and attachments for secrets and private
 details.
 
+Name the tracked issue in the description: `Closes #N` for the issue this PR
+finishes, `Refs #N` for a parent it does not. If no issue exists yet, run the
+`track-issue` skill first. After filing, run its `issue-status sync <N> --apply`
+so the issue moves to In review.
+
 Open a real PR rather than a draft so review bots run. If `gh pr create` fails
 because the GraphQL rate limit is used up, open it through REST with
 `gh api repos/<owner>/<repo>/pulls -f title=... -f head=... -f base=... -F body=@<file>`. If the user also asked
