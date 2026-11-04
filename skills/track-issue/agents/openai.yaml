@@ -1,0 +1,4 @@
+interface:
+  display_name: "Track Issue"
+  short_description: "Log work as an issue and keep its Project Status current"
+  default_prompt: "Use $track-issue to find or create the issue for this work and keep its status current."

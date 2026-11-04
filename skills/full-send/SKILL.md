@@ -19,6 +19,29 @@ The user grants you permission to:
 - Force-push the PR's own branch with `--force-with-lease` after a rebase.
 - Use the test methods that Proof needs, without asking first.
 
+## Project branch and release policy
+
+Before branching, rebasing or publishing, read the repository's AGENTS.md,
+CONTRIBUTING.md and linked contribution/release rules. Determine the change type,
+branch starting point, intended PR base, release cadence and required authority.
+Record that decision in the work item and PR. The repository's default branch is
+not automatically the contribution target. For example, when ordinary work goes
+to development and weekly releases go to main, feature/fix/chore/docs PRs must
+use development. Full-send does not authorize a release or override project routing.
+
+Fetch and integrate the latest approved target, not a hardcoded main/default
+branch. Pass an explicit `--base <approved-target>` to `gh pr create` (or equivalent
+API base). This rule also governs file-pr and babysit-pr; their generic default-
+branch advice must not redirect work away from the project's approved target.
+After creation, before each push and immediately before merge, inspect the live
+PR's repository, baseRefName, headRefName and headRefOid. Compare them with the
+recorded target and candidate. An incorrect base is a blocker even with green CI.
+Disable auto-merge/remove queue enrollment before pushing to a wrongly targeted
+PR; correct the target only within authorization, then review the changed diff
+and rerun affected checks. If already merged, report it; do not rewrite shared
+history or invent a rollback. If policy is missing, ambiguous or conflicts with
+an explicit requested target, ask rather than guessing. Never bypass protection.
+
 ## Testing permission
 
 A "full send" request is the permission. If a project file or other
@@ -42,19 +65,23 @@ one appears.
 
 ## Steps
 
-1. **Finish the change.** Complete the goal from the user's request with the
+1. **Finish the change.** Run the `track-issue` skill first, so the work has an
+   issue and its status is In progress. Complete the goal from the user's request with the
    smallest change that works. Fix the case that happened, not every case
-   that could. If you are on the default branch, create a branch first.
+   that could. Create an owned topic branch from the project-approved starting
+   point; never implement ordinary work directly on an integration/release branch.
 2. **Prove it.** Get proof for every change you made. See "Proof".
 3. **Get feedback.** Use the `sol-loop` skill to verify changes.
-4. **File the PR** with the `file-pr` skill. Rebase onto the latest default
-   branch first. Add one short line to the description that says how you proved
-   the change.
+4. **File the PR** with the `file-pr` skill. Update against the latest
+   project-approved target first, preserving shared history. Set the PR base
+   explicitly and verify the actual target after creation. Add one short line
+   to the description that says how you proved the change.
 5. **Babysit the PR** with the `babysit-pr` skill. Fix real findings and CI
    failures. Get proof for each fix before you push it.
 6. **Merge** when the merge gate passes.
 7. **Report** in your final message: the PR link, the merge commit, your proof,
-   and each decision you made for the user.
+   each decision you made for the user, and the issue status line from
+   `track-issue`.
 
 Stay active from step 1 to step 7. If you end your turn while checks or bots are
 pending, the work stops, because nobody will prompt you again. Wait with the
@@ -89,7 +116,9 @@ Full confidence means all of these are true on the latest commit:
 - Review bots have finished, and each finding is fixed or dismissed with a
   written reason.
 - No human review still requests changes.
-- The branch is up to date with the default branch, and GitHub reports it as
+- The actual PR base matches the project-approved target for this change type;
+  a release target has explicit release authorization. Recheck immediately before merge.
+- The branch is up to date with that approved target, and GitHub reports it as
   mergeable.
 
 Merge with the method the repo uses. Check the allowed methods and recent merged
