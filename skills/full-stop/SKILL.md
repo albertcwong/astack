@@ -30,6 +30,17 @@ authorization or ask the owner. Review the resulting diff and rerun affected
 checks. Never declare a wrongly targeted PR ready. Full-stop remains no-merge,
 including for a correctly targeted and fully approved release PR.
 
+## Issue and review handoff
+
+Apply [review-handoff](../review-handoff/SKILL.md) at work start and before the
+final handoff. Reuse full-send's issue/task mapping and candidate registration;
+full-stop does not skip them because it will not merge. Check the recorded SHA
+against the final PR head and verify the review path and current availability.
+A stopped server is not ready; retain the restart recipe and report it as stopped.
+For documentation-only work, record why runtime review is not applicable and give
+the document-review evidence. Never claim a launcher or validator exists unless
+it is actually installed and verified in the project.
+
 ## No merging
 
 You may commit, push, rebase, fix conflicts, and use `--force-with-lease` on
@@ -60,4 +71,8 @@ without the user. If someone else merged it, report that instead.
 
 Stop the `pr-wait` you started before the handoff or a question.
 Report the PR link, final head, verdict, proof, reviewer outcome, and remaining
-risks. End with the issue status line from `track-issue`. State whether the PR is still open and unmerged.
+risks. Include the `review-handoff` record, candidate SHA, and verified review URL
+or restart recipe (or non-runtime review instructions). End with the issue status
+line from `track-issue`, or the approved local task reference and pending tracking
+action when external tracking was unavailable. State whether the PR is still open
+and unmerged.

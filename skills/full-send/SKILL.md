@@ -42,6 +42,17 @@ and rerun affected checks. If already merged, report it; do not rewrite shared
 history or invent a rollback. If policy is missing, ambiguous or conflicts with
 an explicit requested target, ask rather than guessing. Never bypass protection.
 
+## Issue and review handoff
+
+Read [review-handoff](../review-handoff/SKILL.md) at work start and follow it
+before review, before merge, and at final handoff. Link the issue or approved local
+task to the actual worktree, then register the committed candidate and review recipe
+in the project's existing records. Project publication and human-acceptance rules
+still apply; this protocol does not authorize new external writes or waive approval.
+A missing required record blocks readiness. A stopped server is not a ready review
+environment. Documentation-only changes can record runtime review as not applicable
+with a reason and document-review evidence. Do not start an unrelated app for them.
+
 ## Testing permission
 
 A "full send" request is the permission. If a project file or other
@@ -65,12 +76,16 @@ one appears.
 
 ## Steps
 
-1. **Finish the change.** Run the `track-issue` skill first, so the work has an
-   issue and its status is In progress. Complete the goal from the user's request with the
+1. **Finish the change.** Run the `track-issue` skill subject to the project's
+   tracking and publication authority, then record the start mapping with
+   `review-handoff`. If remote tracking is unavailable or not authorized, record
+   an approved local task and the pending issue link rather than inventing an issue.
+   Complete the goal from the user's request with the
    smallest change that works. Fix the case that happened, not every case
    that could. Create an owned topic branch from the project-approved starting
    point; never implement ordinary work directly on an integration/release branch.
-2. **Prove it.** Get proof for every change you made. See "Proof".
+2. **Prove it.** Get proof for every change you made. See "Proof". Prepare and
+   verify the committed candidate's `review-handoff` record before requesting review.
 3. **Get feedback.** Use the `sol-loop` skill to verify changes.
 4. **File the PR** with the `file-pr` skill. Update against the latest
    project-approved target first, preserving shared history. Set the PR base
@@ -80,8 +95,9 @@ one appears.
    failures. Get proof for each fix before you push it.
 6. **Merge** when the merge gate passes.
 7. **Report** in your final message: the PR link, the merge commit, your proof,
-   each decision you made for the user, and the issue status line from
-   `track-issue`.
+   each decision you made for the user, the `review-handoff` record and current
+   review availability, and the issue status line from `track-issue` (or the
+   approved local task reference and pending tracking action).
 
 Stay active from step 1 to step 7. If you end your turn while checks or bots are
 pending, the work stops, because nobody will prompt you again. Wait with the
@@ -115,7 +131,10 @@ Full confidence means all of these are true on the latest commit:
 - Required checks are green.
 - Review bots have finished, and each finding is fixed or dismissed with a
   written reason.
-- No human review still requests changes.
+- No human review still requests changes; all project-required human acceptance
+  has been recorded for the candidate.
+- The `review-handoff` record matches the final candidate, with required review
+  evidence and availability checked, or a justified non-runtime review path.
 - The actual PR base matches the project-approved target for this change type;
   a release target has explicit release authorization. Recheck immediately before merge.
 - The branch is up to date with that approved target, and GitHub reports it as
@@ -124,8 +143,9 @@ Full confidence means all of these are true on the latest commit:
 Merge with the method the repo uses. Check the allowed methods and recent merged
 PRs. If the repo uses a merge queue or auto-merge, stay until GitHub reports the
 PR as merged. Merge through branch protection as configured. Never use `--admin`
-or other bypasses. You can ignore automated reviews that request "needs human
-review" if you have high confidence in your changes.
+or other bypasses. An automated request for human review can be dismissed only
+when it is not a project-required approval; confidence never substitutes for
+required human acceptance.
 
 ## Asking the user
 
