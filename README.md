@@ -22,6 +22,7 @@ in Claude Code, Codex, [pi](https://github.com/badlogic/pi-mono), and
 |---|---|---|
 | `full-send` | "full send" | Takes a change to a merged PR with nobody watching: proves it, reviews it, files it, babysits it, merges it. |
 | `full-stop` | "full stop" | Same as `full-send`, but stops when the PR is ready for you to merge. |
+| `review-handoff` | "prepare review handoff" | Links an issue or task to its worktree, committed candidate and reproducible review setup; checks readiness without assuming a project-specific launcher. |
 | `council` | "council" | Gets review from three models from different providers, and loops until they agree. |
 | `sol-loop` | "sol loop" | Reviews a change with GPT Sol in a loop until both agents agree. |
 | `file-pr` | "file a PR" | Files a short PR that leads with the problem, not an inventory of changes. |
@@ -43,7 +44,10 @@ in Claude Code, Codex, [pi](https://github.com/badlogic/pi-mono), and
 
 Some skills call others. Install the ones they need too:
 
-- `full-send` uses `track-issue`, `sol-loop`, `file-pr`, and `babysit-pr`.
+- `full-send` uses `track-issue`, `review-handoff`, `sol-loop`, `file-pr`, and `babysit-pr`.
+- `full-stop` also applies `review-handoff` before its no-merge handoff.
+- `review-handoff` uses the project's existing task records and verification tools.
+  It adds a protocol, not a server launcher or automatic status validator.
 - `full-stop` uses `full-send`.
 - `takeover` uses `modernize`, `file-pr`, `babysit-pr`, and `leaving-pr-comments`.
 - `file-pr`, `babysit-pr`, and `modernize` use `leaving-pr-comments`.
