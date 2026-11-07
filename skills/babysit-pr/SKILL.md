@@ -66,6 +66,22 @@ used up, the REST limit is separate and usually still has room. Use
 `gh api repos/<owner>/<repo>/pulls/<n>` to read a PR, and
 `gh api repos/<owner>/<repo>/commits/<sha>/check-runs` for checks.
 
+## CI failures
+
+When a check fails, read its log before you change code or ask the user. The
+check's link names the CI system and the build. Read the failure with what you
+have for that system, in this order:
+
+1. Its tools: an MCP server, a CLI, or its API. Look for tools your harness
+   has not loaded yet before you decide there are none.
+2. The build's published test reports, when the step log names only the
+   failed step and not the failed test.
+3. The user. Ask them to paste the log only when nothing you have can reach it.
+
+If a tool fails on sign-in, give the user the exact command the error names,
+then retry. A permission error on part of the build is not a sign-in problem:
+report what you could not read and what access would fix it.
+
 ## Reviews
 
 Only act on checks and comments newer than the latest push. Verify every bot
