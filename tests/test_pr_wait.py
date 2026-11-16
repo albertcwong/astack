@@ -24,7 +24,7 @@ def author(login, bot=False):
     return {"login": login, "__typename": "Bot" if bot else "User"}
 
 
-def review(login="dx-prizm", head=HEAD, state="COMMENTED", bot=True):
+def review(login="review-bot", head=HEAD, state="COMMENTED", bot=True):
     return {
         "id": login + head,
         "url": "https://example.test/review",
@@ -65,7 +65,11 @@ class ReadinessTests(unittest.TestCase):
         self.patch(pr_wait.sys, "stderr", io.StringIO())
         self.pr = pull_request()
         self.watcher = pr_wait.Watcher(
-            "owner/repo", 1, "ready", 5, reviewers=("dx-prizm",)
+            "owner/repo",
+            1,
+            "ready",
+            5,
+            reviewers=("review-bot",),
         )
         self.watcher.fetch_pr = mock.Mock(side_effect=lambda: copy.deepcopy(self.pr))
         self.watcher.fetch_checks = mock.Mock(
@@ -89,7 +93,8 @@ class ReadinessTests(unittest.TestCase):
             self.watcher.poll()
         self.assertEqual(result.exception.code, code, self.output.getvalue())
 
-    def test_configured_dx_prizm_review_completes_readiness(self):
+    def test_configured_reviewer_completes_readiness(self):
+        self.watcher.review_checks = {}
         self.finish(0)
         self.assertIn("ready on aaaaaaa", self.output.getvalue())
 
@@ -118,8 +123,9 @@ class ReadinessTests(unittest.TestCase):
             self.watcher.poll()
         self.assertEqual(result.exception.code, 1)
 
-    def test_prizm_check_must_finish_successfully_even_after_a_review(self):
-        self.watcher.fetch_checks.return_value["prizm-agents"] = {
+    def test_configured_check_must_finish_successfully_even_after_a_review(self):
+        self.watcher.review_checks = {"review-bot": ("review analysis",)}
+        self.watcher.fetch_checks.return_value["Review analysis"] = {
             "bucket": "pending",
             "link": "",
             "description": "",
@@ -127,14 +133,15 @@ class ReadinessTests(unittest.TestCase):
         self.watcher.poll()
         self.watcher.poll()
         self.assertNotIn("ready on", self.output.getvalue())
-        self.watcher.fetch_checks.return_value["prizm-agents"]["bucket"] = "pass"
+        self.watcher.fetch_checks.return_value["Review analysis"]["bucket"] = "pass"
         self.watcher.poll()
         with self.assertRaises(SystemExit) as result:
             self.watcher.poll()
         self.assertEqual(result.exception.code, 0)
 
     def test_failed_review_check_stops_with_failure(self):
-        self.watcher.fetch_checks.return_value["prizm-agents"] = {
+        self.watcher.review_checks = {"review-bot": ("review analysis",)}
+        self.watcher.fetch_checks.return_value["Review analysis"] = {
             "bucket": "fail",
             "link": "",
             "description": "",
@@ -142,6 +149,12 @@ class ReadinessTests(unittest.TestCase):
         with self.assertRaises(SystemExit) as result:
             self.watcher.poll()
         self.assertEqual(result.exception.code, 1)
+
+    def test_configured_check_must_appear_before_readiness(self):
+        self.watcher.review_checks = {"review-bot": ("review analysis",)}
+        self.watcher.poll()
+        self.watcher.poll()
+        self.assertNotIn("ready on", self.output.getvalue())
 
     def test_unknown_required_check_state_never_passes(self):
         self.watcher.fetch_checks.return_value["build"]["bucket"] = "unknown"
@@ -199,7 +212,7 @@ class ReadinessTests(unittest.TestCase):
 
     def test_advisory_failure_does_not_block_an_otherwise_mergeable_pr(self):
         self.pr["mergeStateStatus"] = "UNSTABLE"
-        self.watcher.fetch_checks.return_value["coderabbit"] = {
+        self.watcher.fetch_checks.return_value["optional-analysis"] = {
             "bucket": "fail",
             "link": "",
             "description": "advisory",
@@ -251,9 +264,26 @@ class ReadinessTests(unittest.TestCase):
         self.pr["reviewDecision"] = "REVIEW_REQUIRED"
         self.finish(1)
 
-    def test_legacy_default_accepts_either_existing_reviewer(self):
-        self.watcher.reviewers = pr_wait.GATING_BOTS
-        self.pr["reviews"]["nodes"] = [review(login="greptile[bot]")]
+    def test_unconfigured_repository_requires_no_particular_review_service(self):
+        default = pr_wait.Watcher("owner/repo", 2, "ready", 5)
+        self.assertEqual(default.reviewers, ())
+        self.watcher.reviewers = default.reviewers
+        self.pr["reviews"]["nodes"] = []
+        self.finish(0)
+
+    def test_repository_without_checks_or_a_review_service_can_be_ready(self):
+        pr_wait.required_checks.return_value = set()
+        self.watcher.reviewers = ()
+        self.pr["reviews"]["nodes"] = []
+        self.watcher.fetch_checks.return_value = {}
+        self.finish(0)
+
+    def test_review_only_repository_uses_its_visible_check_as_the_gate(self):
+        pr_wait.required_checks.return_value = set()
+        self.watcher.review_checks = {"review-bot": ("review analysis",)}
+        self.watcher.fetch_checks.return_value = {
+            "Review analysis": {"bucket": "pass", "link": "", "description": ""}
+        }
         self.finish(0)
 
     def test_retargeting_refreshes_required_checks(self):
@@ -278,7 +308,7 @@ class ConfigurationTests(unittest.TestCase):
                         {
                             "repos": {
                                 "owner/repo": {
-                                    "reviewers": ["DX-PRIZM[bot]"],
+                                    "reviewers": ["REVIEW-BOT[bot]"],
                                     "base": "development",
                                 }
                             }
@@ -287,12 +317,12 @@ class ConfigurationTests(unittest.TestCase):
                 )
                 self.assertEqual(
                     pr_wait.repository_options("owner/repo"),
-                    {"reviewers": ("dx-prizm",), "base": "development"},
+                    {"reviewers": ("review-bot",), "base": "development"},
                 )
                 self.assertEqual(pr_wait.repository_options("different/repo"), {})
                 for invalid in (
                     {"repos": []},
-                    {"repos": {"owner/repo": {"reviewers": "dx-prizm"}}},
+                    {"repos": {"owner/repo": {"reviewers": "review-bot"}}},
                     {"repos": {"owner/repo": {"reviewers": [5]}}},
                     {"repos": {"owner/repo": {"base": ""}}},
                 ):
@@ -304,11 +334,56 @@ class ConfigurationTests(unittest.TestCase):
                         pr_wait.repository_options("owner/repo")
                     self.assertEqual(result.exception.code, 2)
 
+    def test_check_aliases_are_repository_specific_and_validated(self):
+        with tempfile.TemporaryDirectory() as directory:
+            config = Path(directory) / "config.json"
+            with mock.patch.object(pr_wait, "CONFIG_PATH", config):
+                config.write_text(
+                    json.dumps(
+                        {
+                            "repos": {
+                                "owner/repo": {
+                                    "reviewers": ["REVIEW-BOT[bot]"],
+                                    "review_checks": {
+                                        "REVIEW-BOT[bot]": ["Review analysis"]
+                                    },
+                                }
+                            }
+                        }
+                    )
+                )
+                options = pr_wait.repository_options("owner/repo")
+                self.assertEqual(
+                    options["review_checks"], {"review-bot": ("review analysis",)}
+                )
+                watcher = pr_wait.Watcher("owner/repo", 1, "ready", 5, **options)
+                self.assertEqual(watcher.bot_name("REVIEW ANALYSIS"), "review-bot")
+                self.assertIsNone(watcher.bot_name("Unrelated analysis"))
+                self.assertEqual(pr_wait.repository_options("other/repo"), {})
+                for aliases in (
+                    [],
+                    {"review-bot": "Review analysis"},
+                    {"review-bot": [5]},
+                    {"review-bot": [""]},
+                    {"none": ["Review analysis"]},
+                ):
+                    config.write_text(
+                        json.dumps(
+                            {"repos": {"owner/repo": {"review_checks": aliases}}}
+                        )
+                    )
+                    with (
+                        self.assertRaises(SystemExit) as result,
+                        mock.patch("sys.stdout", io.StringIO()),
+                    ):
+                        pr_wait.repository_options("owner/repo")
+                    self.assertEqual(result.exception.code, 2)
+
     def test_explicit_no_reviewer_is_unambiguous(self):
         self.assertEqual(pr_wait.reviewer_names(["none"]), ())
         self.assertEqual(pr_wait.reviewer_names([]), ())
         with self.assertRaises(ValueError):
-            pr_wait.reviewer_names(["none", "dx-prizm"])
+            pr_wait.reviewer_names(["none", "review-bot"])
 
 
 class RequiredCheckDiscoveryTests(unittest.TestCase):

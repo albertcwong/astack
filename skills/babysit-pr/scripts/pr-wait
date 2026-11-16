@@ -11,8 +11,8 @@ Progress and errors that do not end the run go to stderr.
 --until
   green       required checks passed on the current head (every CI check when
               the base branch requires none)
-  ready       green, a configured reviewer reviewed the current head, and no
-              review thread is unresolved (default)
+  ready       green, configured reviewer requirements met, and no review thread
+              is unresolved (default; no particular review service is assumed)
   any-change  stop after the first poll that prints an event
 
 Exit codes
@@ -33,8 +33,9 @@ Events
   - merge state became BEHIND or DIRTY
   - the PR merged or closed
 
-CodeRabbit is advisory unless explicitly selected as a reviewer. Comment
-edits are never events, and top-level comments from CI and deploy bots
+Optional checks do not gate unless selected or required by branch protection.
+When the base requires no checks, every visible CI check gates readiness.
+Comment edits are never events, and top-level comments from CI and deploy bots
 (github-actions, Vercel) are skipped, because checks already carry that news.
 
 State lives in ~/.local/state/pr-wait/. A lock makes a second watcher for the
@@ -59,9 +60,6 @@ from collections.abc import Sequence
 from pathlib import Path
 from typing import Any, NoReturn
 
-GATING_BOTS = ("greptile", "macroscope")
-ADVISORY_BOTS = ("coderabbit",)
-BOT_CHECK_ALIASES = {"dx-prizm": ("prizm-agents",)}
 # CI and deploy bots report through checks. Their PR comments are status reports.
 STATUS_BOTS = ("github-actions", "vercel", "netlify", "railway", "cloudflare")
 CONFIG_PATH = Path(os.environ.get("XDG_CONFIG_HOME", Path.home() / ".config")) / "pr-wait" / "config.json"
@@ -144,11 +142,11 @@ def gh_lines(args: list[str]) -> list[str]:
     return [line for line in gh(args).stdout.splitlines() if line]
 
 
-def bot_name(text: str | None, names: Sequence[str] = GATING_BOTS + ADVISORY_BOTS) -> str | None:
-    """Which review bot a login or check name belongs to, if any."""
+def bot_name(text: str | None, names: Sequence[str], check_aliases: Json) -> str | None:
+    """Match a selected reviewer's login or configured check name."""
     lowered = (text or "").lower()
     return next(
-        (bot for bot in names if bot in lowered or lowered in BOT_CHECK_ALIASES.get(bot, ())),
+        (bot for bot in names if bot in lowered or lowered in check_aliases.get(bot, ())),
         None,
     )
 
@@ -169,7 +167,7 @@ def snippet(body: str, limit: int = 100) -> str:
 
 
 def verdict(body: str) -> str:
-    """The verdict line of a bot summary (Macroscope, Greptile), if it has one."""
+    """The verdict line of a bot summary, if it has one."""
     for line in plain(body).splitlines():
         if re.search(r"verdict|confidence score", line, re.IGNORECASE):
             return snippet(line.replace("*", ""), 80)
@@ -279,12 +277,25 @@ def repository_options(repo: str) -> Json:
         if not isinstance(repos, dict):
             raise ValueError("'repos' must be an object")
         options = repos.get(repo, {})
-        if not isinstance(options, dict) or set(options) - {"reviewers", "base"}:
+        if not isinstance(options, dict) or set(options) - {"reviewers", "review_checks", "base"}:
             raise ValueError(
-                "repository options must contain only 'reviewers' and 'base'"
+                "repository options must contain only 'reviewers', 'review_checks' and 'base'"
             )
         if "reviewers" in options:
             options["reviewers"] = reviewer_names(options["reviewers"])
+        if "review_checks" in options:
+            checks = options["review_checks"]
+            if not isinstance(checks, dict):
+                raise ValueError("review_checks must map reviewer names to check-name arrays")
+            normalized = {}
+            for reviewer, aliases in checks.items():
+                names = reviewer_names([reviewer])
+                if not names or not isinstance(aliases, list) or any(
+                    not isinstance(alias, str) or not alias.strip() for alias in aliases
+                ):
+                    raise ValueError("review_checks must map reviewer names to check-name arrays")
+                normalized[names[0]] = tuple(alias.lower() for alias in aliases)
+            options["review_checks"] = normalized
         if "base" in options and (
             not isinstance(options["base"], str) or not options["base"].strip()
         ):
@@ -295,12 +306,11 @@ def repository_options(repo: str) -> Json:
 
 
 class Watcher:
-    def __init__(self, repo: str, pr: int, until: str, interval: int, *, reviewers: tuple[str, ...] | None = None, expected_base: str | None = None, expected_head: str | None = None) -> None:
+    def __init__(self, repo: str, pr: int, until: str, interval: int, *, reviewers: tuple[str, ...] | None = None, review_checks: Json | None = None, expected_base: str | None = None, expected_head: str | None = None) -> None:
         self.repo, self.pr, self.until, self.interval = repo, pr, until, interval
         self.owner, self.name = repo.split("/")
-        self.reviewers = GATING_BOTS if reviewers is None else reviewers
-        self.bots = tuple(dict.fromkeys(self.reviewers + GATING_BOTS + ADVISORY_BOTS))
-        self.advisory = tuple(bot for bot in ADVISORY_BOTS if bot not in self.reviewers)
+        self.reviewers = reviewers or ()
+        self.review_checks = review_checks or {}
         self.expected_base, self.expected_head = expected_base, expected_head
         self.required_base: str | None = None
         self.path = STATE_DIR / f"{repo.replace('/', '__')}__{pr}.json"
@@ -316,7 +326,7 @@ class Watcher:
         self.pr_files: dict[str, set[str]] = {}
 
     def bot_name(self, text: str | None) -> str | None:
-        return bot_name(text, self.bots)
+        return bot_name(text, self.reviewers, self.review_checks)
 
     def candidate_matches(self, pr: Json) -> None:
         if self.expected_base and pr["baseRefName"] != self.expected_base:
@@ -433,9 +443,8 @@ class Watcher:
         threads = pr["reviewThreads"]["nodes"]
         self.events = 0
 
-        # Required checks. With no required checks configured, every CI check
-        # gates except the review bots' own checks.
-        gate = self.required or {name for name in checks if not self.bot_name(name)}
+        # With no required checks configured, every visible CI check gates.
+        gate = self.required or set(checks)
         label = "required check" if self.required else "check"
 
         def bucket(name: str) -> str:
@@ -447,8 +456,8 @@ class Watcher:
                 link = checks[name]["link"]
                 fail_lines.append(f"{label} failed: {name} {link}")
                 self.emit(f"fail:{head}:{name}:{link}", fail_lines[-1])
-        watched = {name: c for name, c in checks.items() if self.bot_name(name) not in self.advisory}
-        gate_done = bool(gate) and all(bucket(n) != "pending" for n in gate)
+        watched = checks
+        gate_done = all(bucket(n) != "pending" for n in gate)
         all_done = gate_done and all(c["bucket"] != "pending" for c in watched.values())
         # Checks appear a few seconds after a push. Two identical polls in a row
         # guard against calling a half-registered set of checks finished.
@@ -465,7 +474,7 @@ class Watcher:
             self.emit(f"c:{comment['id']}", f"comment from {login}: {snippet(comment['body'])} {comment['url']}")
         for review in reviews:
             login, is_bot = who(review)
-            if login in mine or is_bot:
+            if login in mine or self.bot_name(login):
                 continue
             if review["state"] in ("APPROVED", "CHANGES_REQUESTED") or review["body"].strip():
                 state = review["state"].lower().replace("_", " ")
@@ -489,7 +498,7 @@ class Watcher:
         bot_status: dict[str, str] = {}
         reviewed: list[str] = []
         review_failures: list[str] = []
-        for bot in self.bots:
+        for bot in self.reviewers:
             own_checks = {name: c for name, c in checks.items() if self.bot_name(name) == bot}
             summaries = [c for c in comments if who(c)[1] and self.bot_name(who(c)[0]) == bot]
             own_reviews = [
@@ -498,38 +507,32 @@ class Watcher:
                 and r["state"] not in ("PENDING", "DISMISSED")
             ]
             on_head = any((r.get("commit") or {}).get("oid") == head for r in own_reviews)
-            if own_checks:
-                done = all(c["bucket"] != "pending" for c in own_checks.values())
+            if own_checks or self.review_checks.get(bot):
+                done = bool(own_checks) and all(c["bucket"] != "pending" for c in own_checks.values())
             else:
                 done = on_head or any(head in s["body"] for s in summaries)
             seen = bool(own_checks or summaries or own_reviews)
-            if bot in self.advisory and own_checks:
-                desc = next(iter(own_checks.values()))
-                bot_status[bot] = f"{bot} {desc['description'] or desc['bucket']} (advisory)"
-            elif seen:
-                bot_status[bot] = f"{bot} {'done' if done else 'pending'}{' (advisory)' if bot in self.advisory else ''}"
+            if seen:
+                bot_status[bot] = f"{bot} {'done' if done else 'pending'}"
             key = f"bot:{bot}:{head}"
             was_done = key in self.reported
             if done:
                 successful = all(c["bucket"] in ("pass", "skipping") for c in own_checks.values())
-                if bot in self.reviewers and successful:
+                if successful:
                     reviewed.append(bot)
                 failed = [name for name, c in own_checks.items() if c["bucket"] in FAILED]
-                if bot in self.reviewers:
-                    review_failures.extend(f"review check failed: {name}" for name in failed)
+                review_failures.extend(f"review check failed: {name}" for name in failed)
                 detail = "; ".join(filter(None, [
                     next((v for v in map(verdict, (s["body"] for s in summaries)) if v), ""),
                     f"failed: {', '.join(failed)}" if failed else "",
                 ]))
-                tag = " (advisory, not waited on)" if bot in self.advisory else ""
-                self.emit(key, f"{bot} finished on {short}{': ' + detail if detail else ''}{tag}")
-            if bot in self.reviewers:
-                for s in summaries:
-                    new, old = digest(s["body"]), self.state["summaries"].get(s["id"])
-                    self.state["summaries"][s["id"]] = new
-                    if was_done and old and old != new:
-                        text = verdict(s["body"]) or snippet(s["body"])
-                        self.emit(f"summary:{s['id']}:{new}", f"{bot} summary changed on {short}: {text} {s['url']}")
+                self.emit(key, f"{bot} finished on {short}{': ' + detail if detail else ''}")
+            for s in summaries:
+                new, old = digest(s["body"]), self.state["summaries"].get(s["id"])
+                self.state["summaries"][s["id"]] = new
+                if was_done and old and old != new:
+                    text = verdict(s["body"]) or snippet(s["body"])
+                    self.emit(f"summary:{s['id']}:{new}", f"{bot} summary changed on {short}: {text} {s['url']}")
 
         # Base branch and merge state.
         base_oid = ((pr.get("baseRef") or {}).get("target") or {}).get("oid")
@@ -564,7 +567,7 @@ class Watcher:
             f"required {sum(bucket(n) in ('pass', 'skipping') for n in self.required)}/{len(self.required)} green"
             if self.required
             else "",
-            ", ".join(bot_status[b] for b in self.bots if b in bot_status)
+            ", ".join(bot_status[b] for b in self.reviewers if b in bot_status)
             or (f"waiting for review from {', '.join(self.reviewers)}" if self.reviewers else "no bot review required"),
             f"{len(unresolved)} unresolved threads",
             f"merge state {merge_state}",
@@ -695,6 +698,7 @@ def main() -> None:
         args.until,
         max(args.interval, 5),
         reviewers=reviewers,
+        review_checks=options.get("review_checks"),
         expected_base=args.base or options.get("base"),
         expected_head=args.head.lower() if args.head else None,
     ).run()
