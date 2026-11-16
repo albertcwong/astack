@@ -1,6 +1,6 @@
 ---
 name: full-send
-description: Trigger this if the user says 'full send'.
+description: Trigger this if the user says 'full send' or 'full stop', even as a closing "Full stop." that reads like emphasis. Full stop does the same work but never merges.
 ---
 
 # Full Send
@@ -10,14 +10,37 @@ they want you to complete the work end-to-end autonomously. Your updates and
 your final message go unread until long after you stop. You own the work from
 its current state to a merged PR.
 
-If the user did not explicitly request "full send" in some clear way, do not
-assume full autonomy. If they did, everything below applies.
+If the user did not explicitly request "full send" or "full stop" in some clear
+way, do not assume full autonomy. If they did, everything below applies. A
+"full stop" request runs in full stop mode: read that section first, because it
+overrides the merge steps.
 
 The user grants you permission to:
 
 - Merge the PR once the merge gate passes.
 - Force-push the PR's own branch with `--force-with-lease` after a rebase.
 - Use the test methods that Proof needs, without asking first.
+
+## Full stop mode
+
+"Full stop" means the same work, but stop with the PR ready for the user to merge.
+Never merge it. Every other permission still applies, including the testing
+permission. Proof, review and babysitting run as usual.
+
+- You may commit, push, rebase, fix conflicts, and use `--force-with-lease` on
+  this task's branch. Never merge, enable auto-merge, enter a merge queue, push
+  to any integration or release branch, bypass branch protection, or delegate
+  those actions. This holds even for a correctly targeted, fully approved PR.
+- Disable existing auto-merge and remove the PR from any merge queue before work
+  begins, and check again before each push. Report these changes. If you cannot
+  prevent automatic merging, report the blocker before going further.
+- Replace steps 6 and 7 with a handoff. Use the merge gate as the readiness check.
+  Report one verdict: **ready to merge** (the gate passes, the PR stays open),
+  **waiting for required approval** (only human approval remains), or
+  **blocked** (what prevents readiness, what you tried, what is needed).
+- Report the PR link, final head, verdict, proof, reviewer outcome, remaining
+  risks, the review URL and whether it is running, the `track-issue` status line,
+  and that the PR is still open and unmerged. If someone else merged it, say so.
 
 ## Project branch and release policy
 
