@@ -1,0 +1,4 @@
+interface:
+  display_name: "To Tickets"
+  short_description: "Split large work into small tickets with dependencies"
+  default_prompt: "Use $to-tickets to break this work into small tickets with acceptance criteria and dependencies, then publish the approved breakdown through track-issue."
