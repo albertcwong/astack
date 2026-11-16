@@ -11,10 +11,10 @@ user acceptance, merge, deployment, or adoption.
 
 ## Use the project's records
 
-Read the project's contribution, tracking, review and privacy rules first. Use its
-existing work item and supported index/transaction mechanism. Do not create a second
+Read the project's contribution, tracking, review and privacy rules first. If the
+project defines a handoff record, use its existing work item. Do not create a second
 registry, overwrite another owner's record, or publish private paths and logs.
-Issue tracking and local coordination may use different records; link them.
+Issue tracking and local notes may use different records; link them.
 
 Use a full issue URL or tracker-qualified identifier, not a bare number. If there
 is no issue, follow the project's issue-creation authority. When external writes
@@ -22,9 +22,10 @@ are not authorized, use an approved local task identifier and record the missing
 issue link. Do not silently create an issue or invent a URL. Preserve the old
 identifier as an alias when an issue transfers or is renumbered.
 
-If there is no existing handoff location, agree on one persistent local record
-outside tracked source (or in an explicitly ignored directory). A linked Markdown
-record is sufficient. Do not invent a launcher command or claim a registration API
+If the project defines none, use the private notes location from the user's
+global instructions. Without one, default to `~/notes/<repo>/<issue>-<slug>.md`,
+where `<repo>` is the repository name. Keep it outside every checkout and worktree,
+so it survives worktree cleanup and is never committed. A Markdown file is sufficient. Do not invent a launcher command or claim a registration API
 exists. Use a project helper only after checking its documented behavior.
 
 ## At work start
