@@ -63,6 +63,8 @@ class SafetyRuleTests(unittest.TestCase):
             with self.subTest(skill=name):
                 self.assertIn("--base <approved-target>", text(name))
         self.assertIn("wrong base blocks readiness and merging", text("babysit-pr"))
+        self.assertIn("origin/<approved-target>", text("sol-loop"))
+        self.assertNotIn("origin/<default-branch>", text("sol-loop"))
 
     def test_review_handoff_is_on_request_and_generic(self):
         handoff = text("review-handoff")
