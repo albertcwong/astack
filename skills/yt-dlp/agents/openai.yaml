@@ -1,0 +1,4 @@
+interface:
+  display_name: "yt-dlp"
+  short_description: "Download videos, playlists, audio, and subtitles"
+  default_prompt: "Use $yt-dlp to download the media at this URL."

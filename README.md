@@ -9,6 +9,8 @@ A fork of [tstack](https://github.com/t3dotgg/tstack) with added skills from:
 - [addyosmani/agent-skills](https://github.com/addyosmani/agent-skills):
   `code-review-and-quality`, `code-simplification`, `context-engineering`,
   `idea-refine`, and `ci-cd-and-automation`.
+- [MapleShaw/yt-dlp-downloader-skill](https://github.com/MapleShaw/yt-dlp-downloader-skill):
+  `yt-dlp`.
 
 The agent skills I use every day, cleaned up so anyone can use them. They work
 in Claude Code, Codex, [pi](https://github.com/badlogic/pi-mono), and
@@ -42,6 +44,7 @@ in Claude Code, Codex, [pi](https://github.com/badlogic/pi-mono), and
 | `to-tickets` | "split this into tickets" | Breaks an issue, plan, or conversation into small verifiable tickets with blockers, then publishes the approved breakdown. |
 | `track-issue` | "track this", "sync the board" | Finds or creates the issue for each change and keeps its Project Status current, setting it from the PR when you don't. |
 | `leaving-pr-comments` | (automatic) | Formats comments that an agent posts on your behalf. |
+| `yt-dlp` | "download this video" | Downloads videos, playlists, MP3 audio, or subtitles with quality and destination controls. |
 
 Some skills call others. Install the ones they need too:
 
@@ -79,6 +82,8 @@ cp -R astack/skills/* ~/.cursor/skills/   # Cursor agent
 - `python3` for `babysit-pr`'s `pr-wait` and `track-issue`'s `issue-status`
   scripts. `track-issue` also needs the `project` scope:
   `gh auth refresh -s project`.
+- `python3`, `yt-dlp`, and `ffmpeg` for the `yt-dlp` skill (`ffmpeg` is used
+  for audio extraction and format merging).
 - `council` and `sol-loop` need other providers' models. Install and sign in
   to `claude`, `codex`, and `agent` for Grok, council's third member. Use `pi`
   with a provider if you swap in another member, such as Gemini.
@@ -99,3 +104,5 @@ MIT, copyright 2026 Lauren Tan.
 mattpocock/skills, MIT, copyright 2026 Matt Pocock. `code-review-and-quality`, `code-simplification`,
 `context-engineering`, `idea-refine`, and `ci-cd-and-automation` are adapted
 from addyosmani/agent-skills, MIT, copyright 2025 Addy Osmani.
+`yt-dlp` is adapted from MapleShaw/yt-dlp-downloader-skill, whose README
+declares MIT licensing.

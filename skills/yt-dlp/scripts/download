@@ -1,0 +1,105 @@
+#!/usr/bin/env python3
+"""Build and run yt-dlp without evaluating URL or option text as shell code."""
+
+import argparse
+from pathlib import Path
+import shlex
+import shutil
+import subprocess
+import sys
+from urllib.parse import urlsplit
+
+
+def positive_height(value):
+    try:
+        height = int(value)
+    except ValueError:
+        raise argparse.ArgumentTypeError("quality must be a positive height") from None
+    if height <= 0:
+        raise argparse.ArgumentTypeError("quality must be a positive height")
+    return height
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("url", help="HTTP(S) video or playlist URL")
+    parser.add_argument("-p", "--path", default="~/Downloads/yt-dlp")
+    parser.add_argument("-a", "--audio", action="store_true", help="extract MP3")
+    parser.add_argument("-s", "--subs", action="store_true", help="save uploaded subtitles")
+    parser.add_argument("-q", "--quality", type=positive_height, help="maximum video height")
+    parser.add_argument("-f", "--format", help="yt-dlp format selector; overrides quality")
+    parser.add_argument("-l", "--list", action="store_true", help="list formats only")
+    parser.add_argument("--playlist", action="store_true")
+    parser.add_argument("--items", help="playlist indices or range, e.g. 1:5; implies playlist")
+    parser.add_argument("--browser", choices=(
+        "brave", "chrome", "chromium", "edge", "firefox", "opera", "safari",
+        "vivaldi", "whale",
+    ), help="use cookies from this browser")
+    parser.add_argument("--ipv4", action="store_true")
+    parser.add_argument("--print", dest="preview", action="store_true", help="print command only")
+    args = parser.parse_args()
+    try:
+        url = urlsplit(args.url)
+        valid_url = url.scheme in ("http", "https") and url.hostname
+    except ValueError:
+        valid_url = False
+    if not valid_url:
+        parser.error("provide an HTTP(S) URL with a hostname")
+
+    destination = Path(args.path).expanduser().resolve()
+    playlist = args.playlist or args.items is not None
+    command = ["yt-dlp", "--ignore-config"]
+    if args.browser:
+        command += ["--cookies-from-browser", args.browser]
+    if args.ipv4:
+        command += ["-4"]
+    command += ["--yes-playlist" if playlist else "--no-playlist"]
+    if args.items is not None:
+        command += ["-I", args.items]
+    elif not playlist:
+        command += ["-I", "1"]
+    if args.list:
+        command += ["-F"]
+    else:
+        # yt-dlp expands variables in -P; run in the destination to keep it literal.
+        command += ["-P", ".", "--print", "after_move:filepath"]
+        if playlist:
+            command += ["-o", "%(playlist)s/%(playlist_index)s - %(title)s.%(ext)s"]
+        if args.format:
+            command += ["-f", args.format]
+        elif args.quality:
+            height = args.quality
+            command += ["-f", f"bestvideo*[height<={height}]+bestaudio/best[height<={height}]"]
+        if args.audio:
+            command += ["-x", "--audio-format", "mp3"]
+        if args.subs:
+            command += ["--write-subs", "--sub-langs", "all"]
+    command += ["--", args.url]
+
+    if args.preview:
+        if not args.list:
+            print(f"cd {shlex.quote(str(destination))}")
+        print(shlex.join(command))
+        return 0
+    if not shutil.which("yt-dlp"):
+        print("yt-dlp is missing. Install with: pip install yt-dlp", file=sys.stderr)
+        return 1
+    needs_ffmpeg = args.audio or not args.format or "+" in args.format
+    if not args.list and needs_ffmpeg and not shutil.which("ffmpeg"):
+        print("ffmpeg is required for audio extraction and format merging.", file=sys.stderr)
+        return 1
+    try:
+        if not args.list:
+            destination.mkdir(parents=True, exist_ok=True)
+        cwd = None if args.list else destination
+        return subprocess.run(command, cwd=cwd, check=False).returncode
+    except OSError as error:
+        print(f"download: {error}", file=sys.stderr)
+        return 1
+
+
+if __name__ == "__main__":
+    try:
+        sys.exit(main())
+    except KeyboardInterrupt:
+        sys.exit(130)
