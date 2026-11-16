@@ -32,10 +32,10 @@ Claude Code, Codex, pi, or Cursor's `agent`:
   `--model` before it shows up, so try it before you fall back to an older
   listed one. Bare IDs may not accept an `[effort=...]` override; if so, run
   them at their default effort and say so. Do not hardcode IDs.
-- Run the three in parallel: one shell command that starts each in the
-  background with output to its own file under a temp dir, then `wait`. In
-  Claude Code, Bash `run_in_background` works too. Give the call a long
-  timeout.
+- Run the three in parallel, each as its own background job with output to
+  its own file under a temp dir, so each result returns when it finishes. In
+  Claude Code, use one Bash `run_in_background` call per delegate. Do not
+  `wait` on all of them in one call. Give each call a long timeout.
 - Save each session ID for later rounds: `session_id` from Claude's JSON,
   `thread_id` from Codex's `thread.started` event, `session_id` from
   `agent`'s JSON, and the `--session-id` you chose for pi. Follow up with
@@ -54,6 +54,12 @@ it instead of substituting.
 Give each delegate the request and relevant context. For review or feedback,
 keep their work read-only. Collect their responses and summarize the useful
 findings, disagreements, and recommended next steps.
+
+Do not wait idle. When a result arrives, check its findings against the code
+at once and decide what to fix while the other delegates run. Do not edit
+files while a delegate still reviews the same checkout. If the user's
+instructions mark a delegate as non-blocking, do not wait for it; treat a
+late result as feedback and do not record its score.
 
 For a code review, ask each delegate for a score out of 10.
 Count each full review pass as one round.
