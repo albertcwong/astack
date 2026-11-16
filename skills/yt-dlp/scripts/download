@@ -61,14 +61,15 @@ def main():
     if args.list:
         command += ["-F"]
     else:
-        command += ["-P", str(destination), "--print", "after_move:filepath"]
+        # yt-dlp expands variables in -P; run in the destination to keep it literal.
+        command += ["-P", ".", "--print", "after_move:filepath"]
         if playlist:
             command += ["-o", "%(playlist)s/%(playlist_index)s - %(title)s.%(ext)s"]
         if args.format:
             command += ["-f", args.format]
         elif args.quality:
             height = args.quality
-            command += ["-f", f"bestvideo[height<={height}]+bestaudio/best[height<={height}]"]
+            command += ["-f", f"bestvideo*[height<={height}]+bestaudio/best[height<={height}]"]
         if args.audio:
             command += ["-x", "--audio-format", "mp3"]
         if args.subs:
@@ -76,6 +77,8 @@ def main():
     command += ["--", args.url]
 
     if args.preview:
+        if not args.list:
+            print(f"cd {shlex.quote(str(destination))}")
         print(shlex.join(command))
         return 0
     if not shutil.which("yt-dlp"):
@@ -88,7 +91,8 @@ def main():
     try:
         if not args.list:
             destination.mkdir(parents=True, exist_ok=True)
-        return subprocess.run(command, check=False).returncode
+        cwd = None if args.list else destination
+        return subprocess.run(command, cwd=cwd, check=False).returncode
     except OSError as error:
         print(f"download: {error}", file=sys.stderr)
         return 1

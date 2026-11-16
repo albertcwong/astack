@@ -38,7 +38,7 @@ class DownloadTests(unittest.TestCase):
 
     def tools(self):
         for name, body in (
-            ("yt-dlp", 'printf \'%s\\n\' "$@" > "$YTDLP_TEST_ARGS"\nexit "${YTDLP_TEST_EXIT:-0}"\n'),
+            ("yt-dlp", 'pwd > "$YTDLP_TEST_ARGS.cwd"\nprintf \'%s\\n\' "$@" > "$YTDLP_TEST_ARGS"\nexit "${YTDLP_TEST_EXIT:-0}"\n'),
             ("ffmpeg", "exit 0\n"),
         ):
             tool = self.bin / name
@@ -62,7 +62,7 @@ class DownloadTests(unittest.TestCase):
 
     def test_quality_audio_subtitles_and_format_precedence(self):
         command = self.preview(URL, "--quality", "720", "--audio", "--subs", "--ipv4")
-        self.assertIn("bestvideo[height<=720]+bestaudio/best[height<=720]", command)
+        self.assertIn("bestvideo*[height<=720]+bestaudio/best[height<=720]", command)
         for value in ("-x", "mp3", "--write-subs", "all", "-4"):
             self.assertIn(value, command)
         command = self.preview("--quality", "720", "--format", "18", URL)
@@ -107,14 +107,16 @@ class DownloadTests(unittest.TestCase):
 
     def test_execution_preserves_literal_arguments_and_failure_status(self):
         self.tools()
-        self.dest = self.root / 'media $(touch injected) `touch injected`'
+        self.dest = self.root / 'media $HOME $(touch injected) `touch injected`'
         url = 'https://example.com/v?x=$(touch injected)&y="quoted"'
         result = self.run_download(url, "--format", "18")
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertTrue(self.dest.is_dir())
         arguments = self.log.read_text().splitlines()
         self.assertEqual(arguments[-2:], ["--", url])
-        self.assertEqual(arguments[arguments.index("-P") + 1], str(self.dest.resolve()))
+        self.assertEqual(arguments[arguments.index("-P") + 1], ".")
+        self.assertEqual(Path(f"{self.log}.cwd").read_text().strip(),
+                         str(self.dest.resolve()))
         self.assertFalse((self.root / "injected").exists())
         self.env["YTDLP_TEST_EXIT"] = "7"
         self.assertEqual(self.run_download(URL).returncode, 7)
