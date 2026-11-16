@@ -1,4 +1,4 @@
 interface:
   display_name: "Takeover"
-  short_description: "Finish someone else's PR, branch, or thread"
+  short_description: "Finish someone else's work or update an old PR"
   default_prompt: "Use $takeover to finish this work and keep the original credit."

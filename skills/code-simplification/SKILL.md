@@ -330,4 +330,4 @@ After completing a simplification pass:
 - [ ] Simplified code follows project conventions (checked against CLAUDE.md, AGENTS.md, or equivalent)
 - [ ] No error handling was removed or weakened
 - [ ] No dead code was left behind (unused imports, unreachable branches)
-- [ ] A teammate would approve the change as a net improvement (see `code-review-and-quality`)
+- [ ] A teammate would approve the change as a net improvement
