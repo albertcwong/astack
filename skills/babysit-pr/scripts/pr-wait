@@ -11,7 +11,7 @@ Progress and errors that do not end the run go to stderr.
 --until
   green       required checks passed on the current head (every CI check when
               the base branch requires none)
-  ready      green, Greptile or Macroscope reviewed the current head, and no
+  ready       green, a configured reviewer reviewed the current head, and no
               review thread is unresolved (default)
   any-change  stop after the first poll that prints an event
 
@@ -27,13 +27,13 @@ Events
   - all checks finished on the head (one summary line)
   - a new comment, review, thread, or thread reply from someone other than the
     PR author or the gh user
-  - Greptile, Macroscope, or CodeRabbit finished on the head, or a Greptile or
-    Macroscope summary changed after that
+  - a recognized review bot finished on the head, or a selected reviewer's
+    summary changed after that
   - the base branch moved and the new commits touch files in this PR
   - merge state became BEHIND or DIRTY
   - the PR merged or closed
 
-CodeRabbit is advisory: pr-wait reports it but never waits for it. Comment
+CodeRabbit is advisory unless explicitly selected as a reviewer. Comment
 edits are never events, and top-level comments from CI and deploy bots
 (github-actions, Vercel) are skipped, because checks already carry that news.
 
@@ -61,8 +61,10 @@ from typing import Any, NoReturn
 
 GATING_BOTS = ("greptile", "macroscope")
 ADVISORY_BOTS = ("coderabbit",)
+BOT_CHECK_ALIASES = {"dx-prizm": ("prizm-agents",)}
 # CI and deploy bots report through checks. Their PR comments are status reports.
 STATUS_BOTS = ("github-actions", "vercel", "netlify", "railway", "cloudflare")
+CONFIG_PATH = Path(os.environ.get("XDG_CONFIG_HOME", Path.home() / ".config")) / "pr-wait" / "config.json"
 STATE_DIR = Path.home() / ".local" / "state" / "pr-wait"
 # A state file older than this describes an old session. Start a fresh baseline
 # instead of replaying hours of comments as new events.
@@ -83,7 +85,7 @@ query($owner: String!, $name: String!, $number: Int!) {
   viewer { login }
   repository(owner: $owner, name: $name) {
     pullRequest(number: $number) {
-      url state headRefOid baseRefName mergeStateStatus
+      url state headRefOid baseRefName mergeStateStatus isDraft reviewDecision
       author { login }
       baseRef { target { oid } }
       comments(last: 100) { nodes { id url body author { login __typename } } }
@@ -142,10 +144,13 @@ def gh_lines(args: list[str]) -> list[str]:
     return [line for line in gh(args).stdout.splitlines() if line]
 
 
-def bot_name(text: str | None) -> str | None:
+def bot_name(text: str | None, names: Sequence[str] = GATING_BOTS + ADVISORY_BOTS) -> str | None:
     """Which review bot a login or check name belongs to, if any."""
     lowered = (text or "").lower()
-    return next((bot for bot in GATING_BOTS + ADVISORY_BOTS if bot in lowered), None)
+    return next(
+        (bot for bot in names if bot in lowered or lowered in BOT_CHECK_ALIASES.get(bot, ())),
+        None,
+    )
 
 
 def who(node: Json) -> tuple[str, bool]:
@@ -241,14 +246,63 @@ def required_checks(repo: str, base: str) -> set[str]:
             names.update(gh_lines(["api", path, "--jq", jq]))
         except GhError as error:
             if "HTTP 404" not in str(error):  # 404 means no protection, which is normal
-                log(f"could not read required checks from {path}: {error}")
+                raise
     return names
 
 
+def reviewer_names(values: Any) -> tuple[str, ...]:
+    if not isinstance(values, list) or any(
+        not isinstance(v, str)
+        or not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9_-]*(?:\[bot\])?", v)
+        for v in values
+    ):
+        raise ValueError("reviewers must be an array of GitHub bot names")
+    names = tuple(dict.fromkeys(v.lower().removesuffix("[bot]") for v in values))
+    if "none" in names:
+        if len(names) != 1:
+            raise ValueError("reviewer 'none' cannot be combined with other reviewers")
+        return ()
+    return names
+
+
+def repository_options(repo: str) -> Json:
+    try:
+        config = json.loads(CONFIG_PATH.read_text())
+    except FileNotFoundError:
+        return {}
+    except (OSError, ValueError) as error:
+        fail(f"cannot read {CONFIG_PATH}: {error}")
+    try:
+        if not isinstance(config, dict) or set(config) - {"repos"}:
+            raise ValueError("config must contain only a 'repos' object")
+        repos = config.get("repos", {})
+        if not isinstance(repos, dict):
+            raise ValueError("'repos' must be an object")
+        options = repos.get(repo, {})
+        if not isinstance(options, dict) or set(options) - {"reviewers", "base"}:
+            raise ValueError(
+                "repository options must contain only 'reviewers' and 'base'"
+            )
+        if "reviewers" in options:
+            options["reviewers"] = reviewer_names(options["reviewers"])
+        if "base" in options and (
+            not isinstance(options["base"], str) or not options["base"].strip()
+        ):
+            raise ValueError("base must be a nonempty branch name")
+        return options
+    except ValueError as error:
+        fail(f"invalid {CONFIG_PATH}: {error}")
+
+
 class Watcher:
-    def __init__(self, repo: str, pr: int, until: str, interval: int) -> None:
+    def __init__(self, repo: str, pr: int, until: str, interval: int, *, reviewers: tuple[str, ...] | None = None, expected_base: str | None = None, expected_head: str | None = None) -> None:
         self.repo, self.pr, self.until, self.interval = repo, pr, until, interval
         self.owner, self.name = repo.split("/")
+        self.reviewers = GATING_BOTS if reviewers is None else reviewers
+        self.bots = tuple(dict.fromkeys(self.reviewers + GATING_BOTS + ADVISORY_BOTS))
+        self.advisory = tuple(bot for bot in ADVISORY_BOTS if bot not in self.reviewers)
+        self.expected_base, self.expected_head = expected_base, expected_head
+        self.required_base: str | None = None
         self.path = STATE_DIR / f"{repo.replace('/', '__')}__{pr}.json"
         state = self.load()
         # First run for this PR: record what exists and report nothing.
@@ -258,8 +312,22 @@ class Watcher:
         self.printed: set[str] = set()
         self.events = 0
         self.required: set[str] | None = None
-        self.prev_snapshot: list[tuple[str, str]] | None = None
+        self.prev_snapshot: tuple | None = None
         self.pr_files: dict[str, set[str]] = {}
+
+    def bot_name(self, text: str | None) -> str | None:
+        return bot_name(text, self.bots)
+
+    def candidate_matches(self, pr: Json) -> None:
+        if self.expected_base and pr["baseRefName"] != self.expected_base:
+            self.finish(
+                1,
+                [
+                    f"wrong base: expected {self.expected_base}, found {pr['baseRefName']}"
+                ],
+            )
+        if self.expected_head and pr["headRefOid"] != self.expected_head:
+            self.finish(1, [f"candidate changed: expected tested head {self.expected_head}, found {pr['headRefOid']}; verify the new head"])
 
     def load(self) -> Json | None:
         try:
@@ -348,9 +416,12 @@ class Watcher:
         if pr["state"] == "CLOSED":
             self.finish(1, [f"closed without merging: {pr['url']}"])
 
+        self.candidate_matches(pr)
         base = pr["baseRefName"]
-        if self.required is None:
+        if self.required is None or self.required_base != base:
             self.required = required_checks(self.repo, base)
+            self.required_base = base
+            self.prev_snapshot = None
             gate = ", ".join(sorted(self.required)) or "none set, so every CI check gates"
             log(f"watching {self.repo}#{self.pr} until {self.until}; required checks: {gate}")
         checks = self.fetch_checks()
@@ -364,7 +435,7 @@ class Watcher:
 
         # Required checks. With no required checks configured, every CI check
         # gates except the review bots' own checks.
-        gate = self.required or {name for name in checks if not bot_name(name)}
+        gate = self.required or {name for name in checks if not self.bot_name(name)}
         label = "required check" if self.required else "check"
 
         def bucket(name: str) -> str:
@@ -376,20 +447,20 @@ class Watcher:
                 link = checks[name]["link"]
                 fail_lines.append(f"{label} failed: {name} {link}")
                 self.emit(f"fail:{head}:{name}:{link}", fail_lines[-1])
-        watched = {name: c for name, c in checks.items() if bot_name(name) not in ADVISORY_BOTS}
+        watched = {name: c for name, c in checks.items() if self.bot_name(name) not in self.advisory}
         gate_done = bool(gate) and all(bucket(n) != "pending" for n in gate)
         all_done = gate_done and all(c["bucket"] != "pending" for c in watched.values())
         # Checks appear a few seconds after a push. Two identical polls in a row
         # guard against calling a half-registered set of checks finished.
-        snapshot = sorted((name, c["bucket"]) for name, c in watched.items())
+        snapshot = (head, base, sorted((name, c["bucket"]) for name, c in watched.items()))
         stable = snapshot == self.prev_snapshot
         self.prev_snapshot = snapshot
-        green = gate_done and stable and not fail_lines
+        green = gate_done and stable and all(bucket(n) in ("pass", "skipping") for n in gate)
 
         # People and bots talking. Edits are never events.
         for comment in comments:
             login, is_bot = who(comment)
-            if login in mine or bot_name(login) or (is_bot and any(b in login for b in STATUS_BOTS)):
+            if login in mine or self.bot_name(login) or (is_bot and any(b in login for b in STATUS_BOTS)):
                 continue
             self.emit(f"c:{comment['id']}", f"comment from {login}: {snippet(comment['body'])} {comment['url']}")
         for review in reviews:
@@ -417,34 +488,42 @@ class Watcher:
         # summary names the head.
         bot_status: dict[str, str] = {}
         reviewed: list[str] = []
-        for bot in GATING_BOTS + ADVISORY_BOTS:
-            own_checks = {name: c for name, c in checks.items() if bot_name(name) == bot}
-            summaries = [c for c in comments if bot_name(who(c)[0]) == bot]
-            own_reviews = [r for r in reviews if bot_name(who(r)[0]) == bot]
+        review_failures: list[str] = []
+        for bot in self.bots:
+            own_checks = {name: c for name, c in checks.items() if self.bot_name(name) == bot}
+            summaries = [c for c in comments if who(c)[1] and self.bot_name(who(c)[0]) == bot]
+            own_reviews = [
+                r for r in reviews
+                if who(r)[1] and self.bot_name(who(r)[0]) == bot
+                and r["state"] not in ("PENDING", "DISMISSED")
+            ]
             on_head = any((r.get("commit") or {}).get("oid") == head for r in own_reviews)
             if own_checks:
                 done = all(c["bucket"] != "pending" for c in own_checks.values())
             else:
-                done = on_head or any(short in s["body"] for s in summaries)
+                done = on_head or any(head in s["body"] for s in summaries)
             seen = bool(own_checks or summaries or own_reviews)
-            if bot in ADVISORY_BOTS and own_checks:
+            if bot in self.advisory and own_checks:
                 desc = next(iter(own_checks.values()))
                 bot_status[bot] = f"{bot} {desc['description'] or desc['bucket']} (advisory)"
             elif seen:
-                bot_status[bot] = f"{bot} {'done' if done else 'pending'}{' (advisory)' if bot in ADVISORY_BOTS else ''}"
+                bot_status[bot] = f"{bot} {'done' if done else 'pending'}{' (advisory)' if bot in self.advisory else ''}"
             key = f"bot:{bot}:{head}"
             was_done = key in self.reported
             if done:
-                if bot in GATING_BOTS:
+                successful = all(c["bucket"] in ("pass", "skipping") for c in own_checks.values())
+                if bot in self.reviewers and successful:
                     reviewed.append(bot)
                 failed = [name for name, c in own_checks.items() if c["bucket"] in FAILED]
+                if bot in self.reviewers:
+                    review_failures.extend(f"review check failed: {name}" for name in failed)
                 detail = "; ".join(filter(None, [
                     next((v for v in map(verdict, (s["body"] for s in summaries)) if v), ""),
                     f"failed: {', '.join(failed)}" if failed else "",
                 ]))
-                tag = " (advisory, not waited on)" if bot in ADVISORY_BOTS else ""
+                tag = " (advisory, not waited on)" if bot in self.advisory else ""
                 self.emit(key, f"{bot} finished on {short}{': ' + detail if detail else ''}{tag}")
-            if bot in GATING_BOTS:
+            if bot in self.reviewers:
                 for s in summaries:
                     new, old = digest(s["body"]), self.state["summaries"].get(s["id"])
                     self.state["summaries"][s["id"]] = new
@@ -485,8 +564,8 @@ class Watcher:
             f"required {sum(bucket(n) in ('pass', 'skipping') for n in self.required)}/{len(self.required)} green"
             if self.required
             else "",
-            ", ".join(bot_status[b] for b in GATING_BOTS + ADVISORY_BOTS if b in bot_status)
-            or "no Greptile or Macroscope yet",
+            ", ".join(bot_status[b] for b in self.bots if b in bot_status)
+            or (f"waiting for review from {', '.join(self.reviewers)}" if self.reviewers else "no bot review required"),
             f"{len(unresolved)} unresolved threads",
             f"merge state {merge_state}",
         ]
@@ -503,12 +582,42 @@ class Watcher:
             if green and self.until == "green":
                 self.reported.add(checks_key)
                 self.finish(0, [f"green on {short}: {summary}{self.behind(base, base_oid, head)}"])
-            # ready waits for Greptile or Macroscope, never for CodeRabbit.
-            if green and reviewed:
+            if self.until == "ready" and review_failures and not reviewed:
+                self.finish(1, review_failures)
+            # Reviewers are alternatives; an empty configured list requires no bot.
+            if green and (reviewed or not self.reviewers):
                 if unresolved:
                     self.finish(1, [f"blocked by {len(unresolved)} unresolved threads on {short}: {' '.join(unresolved)}"])
                 if merge_state == "BEHIND":
                     self.finish(1, [behind_line])
+                if pr.get("isDraft"):
+                    self.finish(1, ["PR is a draft; mark it ready for review first"])
+                effective_reviews = {}
+                for review in reviews:
+                    login, is_bot = who(review)
+                    if (not is_bot and login != who(pr)[0]
+                            and review["state"] in ("APPROVED", "CHANGES_REQUESTED", "DISMISSED")):
+                        effective_reviews[login] = review["state"]
+                if ("CHANGES_REQUESTED" in effective_reviews.values()
+                        or pr.get("reviewDecision") == "CHANGES_REQUESTED"):
+                    self.finish(1, ["human review still requests changes"])
+                if pr.get("reviewDecision") == "REVIEW_REQUIRED":
+                    self.finish(1, ["waiting for required human approval"])
+                if merge_state != "CLEAN":
+                    # UNKNOWN is transient; BLOCKED/UNSTABLE are not merge-ready.
+                    if merge_state != "UNKNOWN":
+                        self.finish(1, [f"merge state is {merge_state}; inspect the remaining GitHub gate"])
+                    return
+                # The PR can change while gh fetches checks and reviews.
+                current = self.fetch_pr()
+                self.candidate_matches(current)
+                candidate_fields = (
+                    "state", "headRefOid", "baseRefName", "isDraft", "reviewDecision",
+                    "mergeStateStatus", "baseRef", "reviews", "reviewThreads",
+                )
+                if any(current.get(k) != pr.get(k) for k in candidate_fields):
+                    self.prev_snapshot = None
+                    return
                 self.reported.add(checks_key)
                 self.finish(0, [f"ready on {short}: {summary}{self.behind(base, base_oid, head)}"])
         if all_done and (stable or self.baseline):
@@ -538,15 +647,57 @@ class Watcher:
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(prog="pr-wait", description="Watch a GitHub PR and print one line per real event.")
+    parser = argparse.ArgumentParser(
+        prog="pr-wait",
+        description="Watch a GitHub PR and print one line per real event.",
+    )
     parser.add_argument("pr", nargs="?", help="PR number or URL")
-    parser.add_argument("--repo", help="owner/name (default: from the URL or the current checkout)")
-    parser.add_argument("--until", choices=("green", "ready", "any-change"), default="ready")
-    parser.add_argument("--interval", type=int, default=20, help="seconds between polls (default 20, min 5)")
+    parser.add_argument(
+        "--repo", help="owner/name (default: from the URL or the current checkout)"
+    )
+    parser.add_argument(
+        "--until", choices=("green", "ready", "any-change"), default="ready"
+    )
+    parser.add_argument(
+        "--reviewer",
+        action="append",
+        help="acceptable review bot; repeat for alternatives, or use 'none'",
+    )
+    parser.add_argument(
+        "--base", help="expected target branch (overrides repository config)"
+    )
+    parser.add_argument(
+        "--head", help="full tested commit SHA; stop if the candidate changes"
+    )
+    parser.add_argument(
+        "--interval",
+        type=int,
+        default=20,
+        help="seconds between polls (default 20, min 5)",
+    )
     args = parser.parse_args()
     repo, pr = parse_target(args.pr, args.repo)
+    options = repository_options(repo)
+    try:
+        reviewers = (
+            reviewer_names(args.reviewer)
+            if args.reviewer is not None
+            else options.get("reviewers")
+        )
+    except ValueError as error:
+        parser.error(str(error))
+    if args.head and not re.fullmatch(r"[0-9a-fA-F]{40}", args.head):
+        parser.error("--head must be a full 40-character commit SHA")
     _lock = lock(repo, pr)
-    Watcher(repo, pr, args.until, max(args.interval, 5)).run()
+    Watcher(
+        repo,
+        pr,
+        args.until,
+        max(args.interval, 5),
+        reviewers=reviewers,
+        expected_base=args.base or options.get("base"),
+        expected_head=args.head.lower() if args.head else None,
+    ).run()
 
 
 if __name__ == "__main__":
