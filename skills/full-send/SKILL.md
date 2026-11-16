@@ -24,7 +24,7 @@ The user grants you permission to:
 Before branching, rebasing or publishing, read the repository's AGENTS.md,
 CONTRIBUTING.md and linked contribution/release rules. Determine the change type,
 branch starting point, intended PR base, release cadence and required authority.
-Record that decision in the work item and PR. The repository's default branch is
+Record that decision in the PR. The repository's default branch is
 not automatically the contribution target. For example, when ordinary work goes
 to development and weekly releases go to main, feature/fix/chore/docs PRs must
 use development. Full-send does not authorize a release or override project routing.
@@ -42,16 +42,15 @@ and rerun affected checks. If already merged, report it; do not rewrite shared
 history or invent a rollback. If policy is missing, ambiguous or conflicts with
 an explicit requested target, ask rather than guessing. Never bypass protection.
 
-## Issue and review handoff
+## Review environment
 
-Read [review-handoff](../review-handoff/SKILL.md) at work start and follow it
-before review, before merge, and at final handoff. Link the issue or approved local
-task to the actual worktree, then register the committed candidate and review recipe
-in the project's existing records. Project publication and human-acceptance rules
-still apply; this protocol does not authorize new external writes or waive approval.
-A missing required record blocks readiness. A stopped server is not a ready review
-environment. Documentation-only changes can record runtime review as not applicable
-with a reason and document-review evidence. Do not start an unrelated app for them.
+When the user needs to try the change in a running app, put the review steps in
+the PR description: the URL, the candidate SHA it serves, numbered click steps and
+expected results. Check that the server responds before calling it ready. A stopped
+server is not ready; report it as stopped, with the command to restart it.
+Documentation-only changes need no review environment, and you should not start an
+unrelated app for them. Use the `review-handoff` skill only when the user asks for
+a handoff record.
 
 ## Testing permission
 
@@ -77,15 +76,13 @@ one appears.
 ## Steps
 
 1. **Finish the change.** Run the `track-issue` skill subject to the project's
-   tracking and publication authority, then record the start mapping with
-   `review-handoff`. If remote tracking is unavailable or not authorized, record
-   an approved local task and the pending issue link rather than inventing an issue.
+   tracking and publication authority. If remote tracking is unavailable or not
+   authorized, report the pending issue link rather than inventing an issue.
    Complete the goal from the user's request with the
    smallest change that works. Fix the case that happened, not every case
    that could. Create an owned topic branch from the project-approved starting
    point; never implement ordinary work directly on an integration/release branch.
-2. **Prove it.** Get proof for every change you made. See "Proof". Prepare and
-   verify the committed candidate's `review-handoff` record before requesting review.
+2. **Prove it.** Get proof for every change you made. See "Proof".
 3. **Get feedback.** Use the `sol-loop` skill to verify changes.
 4. **File the PR** with the `file-pr` skill. Update against the latest
    project-approved target first, preserving shared history. Set the PR base
@@ -95,9 +92,9 @@ one appears.
    failures. Get proof for each fix before you push it.
 6. **Merge** when the merge gate passes.
 7. **Report** in your final message: the PR link, the merge commit, your proof,
-   each decision you made for the user, the `review-handoff` record and current
-   review availability, and the issue status line from `track-issue` (or the
-   approved local task reference and pending tracking action).
+   each decision you made for the user, the review URL and whether it is still
+   running (if there is one), and the issue status line from `track-issue` (or the
+   pending tracking action).
 
 Stay active from step 1 to step 7. If you end your turn while checks or bots are
 pending, the work stops, because nobody will prompt you again. Wait with the
@@ -133,8 +130,7 @@ Full confidence means all of these are true on the latest commit:
   written reason.
 - No human review still requests changes; all project-required human acceptance
   has been recorded for the candidate.
-- The `review-handoff` record matches the final candidate, with required review
-  evidence and availability checked, or a justified non-runtime review path.
+- Any review URL in the PR serves the final candidate.
 - The actual PR base matches the project-approved target for this change type;
   a release target has explicit release authorization. Recheck immediately before merge.
 - The branch is up to date with that approved target, and GitHub reports it as
