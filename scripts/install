@@ -1,0 +1,120 @@
+#!/usr/bin/env python3
+"""Link astack skills into the folders coding agents read.
+
+Claude Code reads ~/.claude/skills. Codex, Cursor's agent, pi and opencode read
+~/.agents/skills. Each skill becomes a symlink into this checkout, so a
+`git pull` updates every agent at once.
+
+Run it again after each pull. It links new skills, removes links to skills that
+no longer exist, and moves old copies to ~/.local/share/astack/skill-backups/
+instead of deleting them. It never touches a folder that is not an astack skill.
+"""
+
+import argparse
+import datetime
+import os
+import shutil
+from pathlib import Path
+
+CHECKOUT = Path(__file__).resolve().parents[1]
+LINK_DIRS = {"claude": ".claude/skills", "agents": ".agents/skills"}
+COPY_DIRS = {"codex": ".codex/skills", "cursor": ".cursor/skills", "pi": ".pi/agent/skills"}
+# Skills merged into others. Old copies of these are backed up like other copies.
+RETIRED = {"full-stop", "modernize", "code-review-and-quality"}
+
+
+def is_skill_dir(path):
+    return path.is_dir() and not path.is_symlink() and (path / "SKILL.md").is_file()
+
+
+def link_target(entry):
+    raw = Path(os.readlink(entry))
+    return Path(os.path.normpath(raw if raw.is_absolute() else entry.parent / raw))
+
+
+class Installer:
+    def __init__(self, home, checkout=CHECKOUT, dry_run=False):
+        self.home = Path(home)
+        self.skills_dir = checkout / "skills"
+        self.names = sorted(p.name for p in self.skills_dir.iterdir() if (p / "SKILL.md").is_file())
+        self.dry_run = dry_run
+        self.stamp = datetime.datetime.now(datetime.timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+        self.changes = 0
+
+    def say(self, message):
+        self.changes += 1
+        print(("would " if self.dry_run else "") + message)
+
+    def points_here(self, entry):
+        return link_target(entry).is_relative_to(self.skills_dir)
+
+    def backup(self, entry, label):
+        dest = self.home / ".local/share/astack/skill-backups" / self.stamp / label / entry.name
+        self.say(f"move {entry} to {dest}")
+        if not self.dry_run:
+            dest.parent.mkdir(parents=True, exist_ok=True)
+            shutil.move(str(entry), str(dest))
+
+    def link(self, label, folder):
+        folder = self.home / folder
+        if not self.dry_run:
+            folder.mkdir(parents=True, exist_ok=True)
+        for name in self.names:
+            entry, target = folder / name, self.skills_dir / name
+            if entry.is_symlink():
+                if link_target(entry) == target:
+                    continue
+                self.say(f"relink {entry} -> {target}")
+                if not self.dry_run:
+                    entry.unlink()
+            elif is_skill_dir(entry):
+                self.backup(entry, label)
+                self.say(f"link {entry} -> {target}")
+            elif entry.exists():
+                print(f"skip {entry}: exists and is not a skill folder")
+                continue
+            else:
+                self.say(f"link {entry} -> {target}")
+            if not self.dry_run:
+                entry.symlink_to(target, target_is_directory=True)
+        if folder.is_dir():
+            for entry in sorted(folder.iterdir()):
+                if entry.is_symlink() and self.points_here(entry) and not link_target(entry).exists():
+                    self.say(f"remove {entry} (skill no longer exists)")
+                    if not self.dry_run:
+                        entry.unlink()
+                elif entry.name in RETIRED and is_skill_dir(entry):
+                    self.backup(entry, label)
+
+    def remove_copies(self, label, folder):
+        folder = self.home / folder
+        if not folder.is_dir():
+            return
+        for entry in sorted(folder.iterdir()):
+            if entry.is_symlink() and self.points_here(entry):
+                self.say(f"remove {entry} (the agent reads ~/.agents/skills)")
+                if not self.dry_run:
+                    entry.unlink()
+            elif (entry.name in self.names or entry.name in RETIRED) and is_skill_dir(entry):
+                self.backup(entry, label)
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
+    parser.add_argument("--home", default=Path.home(), help="home directory (default: yours)")
+    parser.add_argument("--remove-copies", action="store_true",
+                        help="also move astack copies out of ~/.codex, ~/.cursor and ~/.pi/agent skill folders")
+    parser.add_argument("--dry-run", action="store_true", help="print the changes without making them")
+    args = parser.parse_args()
+    installer = Installer(args.home, dry_run=args.dry_run)
+    for label, folder in LINK_DIRS.items():
+        installer.link(label, folder)
+    if args.remove_copies:
+        for label, folder in COPY_DIRS.items():
+            installer.remove_copies(label, folder)
+    if not installer.changes:
+        print("Nothing to change.")
+
+
+if __name__ == "__main__":
+    main()
