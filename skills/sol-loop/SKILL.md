@@ -35,8 +35,10 @@ Find the base after `git fetch origin`:
 - PR: `gh pr view <n> --json baseRefName,headRefOid`. Check out the branch
   only if clean. Confirm `HEAD` is the PR head, or ahead only by this
   change. Base: `git merge-base HEAD origin/<baseRefName>`.
-- Local: `git merge-base HEAD origin/<default-branch>`. No remote: a base
-  the user names, or `HEAD` for uncommitted changes only.
+- Local: `git merge-base HEAD origin/<approved-target>`, where the approved
+  target is the PR base the project's AGENTS.md or CONTRIBUTING.md names for
+  this change type. The default branch is not automatically that target. No
+  remote: a base the user names, or `HEAD` for uncommitted changes only.
 
 The change is base to working tree in those paths, with untracked files.
 Use one diff command all rounds. State intent and out-of-scope in 1-2
