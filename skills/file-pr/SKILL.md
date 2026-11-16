@@ -52,8 +52,15 @@ so the issue moves to In review.
 
 Open a real PR rather than a draft so review bots run. If `gh pr create` fails
 because the GraphQL rate limit is used up, open it through REST with
-`gh api repos/<owner>/<repo>/pulls -f title=... -f head=... -f base=... -F body=@<file>`. If the user also asked
-to babysit it, continue with the `babysit-pr` skill.
+`gh api repos/<owner>/<repo>/pulls -f title=... -f head=... -f base=... -F body=@<file>`.
+
+Filing does not end the task. Stay with the PR until its required checks pass:
+wait with `babysit-pr`'s `pr-wait --until green`, read each failing check's log,
+fix the cause and push, then wait again. Stop only when the checks are green or
+a failure needs something you cannot do, and report which. If you cannot keep
+watching, say so in your report and name who owns the PR next. If the user asked
+you to babysit it, continue with the full `babysit-pr` skill, including review
+bots.
 
 Do not post a follow-up PR comment unless it serves the user's request. When a
 comment is needed, use the `leaving-pr-comments` skill.

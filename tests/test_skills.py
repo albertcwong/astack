@@ -66,6 +66,9 @@ class SafetyRuleTests(unittest.TestCase):
         self.assertIn("origin/<approved-target>", text("sol-loop"))
         self.assertNotIn("origin/<default-branch>", text("sol-loop"))
 
+    def test_filing_a_pr_waits_for_required_checks(self):
+        self.assertIn("pr-wait --until green", text("file-pr"))
+
     def test_review_handoff_is_on_request_and_generic(self):
         handoff = text("review-handoff")
         self.assertIn("only when the user asks", frontmatter(handoff))
