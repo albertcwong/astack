@@ -1,6 +1,6 @@
 ---
 name: review-handoff
-description: Record the link between a tracked issue, implementation worktree, committed candidate and reproducible review setup. Use when starting tracked implementation, preparing user review, revising a candidate, or handing off with full-send or full-stop.
+description: Record the link between a tracked issue, implementation worktree, committed candidate and reproducible review setup. Use only when the user asks for a review handoff record.
 ---
 
 # Review handoff

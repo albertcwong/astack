@@ -10,20 +10,24 @@ class ReviewHandoffPolicyTests(unittest.TestCase):
     def skill(self, name):
         return (ROOT / "skills" / name / "SKILL.md").read_text()
 
-    def test_both_delivery_skills_require_shared_protocol(self):
+    def test_delivery_skills_use_handoff_only_on_request(self):
         for name in ("full-send", "full-stop"):
             with self.subTest(skill=name):
                 text = self.skill(name)
-                self.assertIn("../review-handoff/SKILL.md", text)
-                self.assertIn("at work start", text)
-                self.assertIn("handoff", text)
+                self.assertNotIn("../review-handoff/SKILL.md", text)
+                self.assertNotIn("`review-handoff` record", text)
+                self.assertNotIn("approved local task", text)
+                self.assertIn("server is not ready", text)
         send = self.skill("full-send")
+        self.assertIn("only when the user asks", send)
         self.assertIn("before merge", send)
         self.assertIn("all project-required human acceptance", send)
-        self.assertIn("approved local task", send)
+        self.assertIn("Any review URL in the PR serves the final candidate", send)
         stop = self.skill("full-stop")
         self.assertIn("Never merge it", stop)
-        self.assertIn("A stopped server is not ready", stop)
+        self.assertIn("serves the final head", stop)
+        handoff = (ROOT / "skills" / "review-handoff" / "SKILL.md").read_text()
+        self.assertIn("Use only when the user asks", handoff)
 
     def test_identity_recovery_and_truthful_states(self):
         text = self.skill("review-handoff")
@@ -75,6 +79,7 @@ class ReviewHandoffPolicyTests(unittest.TestCase):
     def test_readme_lists_protocol(self):
         text = (ROOT / "README.md").read_text()
         self.assertIn("| `review-handoff` |", text)
+        self.assertIn("only when you ask for a handoff record", text)
         self.assertIn("not a server launcher or automatic status validator", text)
 
 
