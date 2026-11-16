@@ -38,7 +38,8 @@ unresolved threads, PR closed), and 2 on bad input.
 
 - `ready` (default): required checks green, an acceptable bot reviewed the current
   head, no unresolved threads or human change requests, required human approvals
-  present, and GitHub merge state CLEAN. Drafts cannot be ready.
+  present, and GitHub reports the PR mergeable without a blocked or behind state.
+  Drafts cannot be ready. Advisory check failures do not become required gates.
 - `green`: required checks only; this is not a review-readiness verdict.
 - `any-change`: exit on the first event.
 

@@ -42,6 +42,7 @@ def pull_request():
         "headRefOid": HEAD,
         "baseRefName": "development",
         "mergeStateStatus": "CLEAN",
+        "mergeable": "MERGEABLE",
         "isDraft": False,
         "reviewDecision": None,
         "author": author("writer"),
@@ -195,6 +196,21 @@ class ReadinessTests(unittest.TestCase):
         with self.assertRaises(SystemExit) as result:
             self.watcher.poll()
         self.assertEqual(result.exception.code, 1)
+
+    def test_advisory_failure_does_not_block_an_otherwise_mergeable_pr(self):
+        self.pr["mergeStateStatus"] = "UNSTABLE"
+        self.watcher.fetch_checks.return_value["coderabbit"] = {
+            "bucket": "fail",
+            "link": "",
+            "description": "advisory",
+        }
+        self.finish(0)
+
+    def test_unknown_mergeability_waits_for_github(self):
+        self.pr["mergeable"] = "UNKNOWN"
+        self.watcher.poll()
+        self.watcher.poll()
+        self.assertNotIn("ready on", self.output.getvalue())
 
     def test_expected_base_and_tested_head_mismatches_stop(self):
         self.watcher.expected_base = "main"

@@ -85,7 +85,7 @@ query($owner: String!, $name: String!, $number: Int!) {
   viewer { login }
   repository(owner: $owner, name: $name) {
     pullRequest(number: $number) {
-      url state headRefOid baseRefName mergeStateStatus isDraft reviewDecision
+      url state headRefOid baseRefName mergeStateStatus mergeable isDraft reviewDecision
       author { login }
       baseRef { target { oid } }
       comments(last: 100) { nodes { id url body author { login __typename } } }
@@ -603,17 +603,17 @@ class Watcher:
                     self.finish(1, ["human review still requests changes"])
                 if pr.get("reviewDecision") == "REVIEW_REQUIRED":
                     self.finish(1, ["waiting for required human approval"])
-                if merge_state != "CLEAN":
-                    # UNKNOWN is transient; BLOCKED/UNSTABLE are not merge-ready.
-                    if merge_state != "UNKNOWN":
-                        self.finish(1, [f"merge state is {merge_state}; inspect the remaining GitHub gate"])
-                    return
+                if merge_state not in ("CLEAN", "UNSTABLE") or pr.get("mergeable") != "MERGEABLE":
+                    # Optional failed checks can be UNSTABLE while still mergeable.
+                    if merge_state == "UNKNOWN" or pr.get("mergeable") == "UNKNOWN":
+                        return
+                    self.finish(1, [f"merge state is {merge_state}; inspect the remaining GitHub gate"])
                 # The PR can change while gh fetches checks and reviews.
                 current = self.fetch_pr()
                 self.candidate_matches(current)
                 candidate_fields = (
                     "state", "headRefOid", "baseRefName", "isDraft", "reviewDecision",
-                    "mergeStateStatus", "baseRef", "reviews", "reviewThreads",
+                    "mergeStateStatus", "mergeable", "baseRef", "reviews", "reviewThreads",
                 )
                 if any(current.get(k) != pr.get(k) for k in candidate_fields):
                     self.prev_snapshot = None
