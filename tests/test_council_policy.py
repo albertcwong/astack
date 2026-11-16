@@ -17,6 +17,7 @@ class CouncilPolicyTests(unittest.TestCase):
             "do not record its score",
         ):
             self.assertIn(rule, text)
+        self.assertNotIn("then `wait`", text)
 
 
 if __name__ == "__main__":
