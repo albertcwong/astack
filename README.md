@@ -76,9 +76,10 @@ cp -R astack/skills/* ~/.cursor/skills/   # Cursor agent
   scripts. `track-issue` also needs the `project` scope:
   `gh auth refresh -s project`.
 - `council` and `sol-loop` need other providers' models. Install and sign in
-  to `claude`, `codex`, and `pi` (with a provider for Gemini or your third
-  council member), or `agent` for Grok. `pi --list-models <search>` and
-  `agent --list-models` show which model IDs you can reach.
+  to `claude`, `codex`, and `agent` for Grok, council's third member. Use `pi`
+  with a provider if you swap in another member, such as Gemini.
+  `pi --list-models <search>` and `agent --list-models` show which model IDs
+  you can reach.
 
 ## Make them yours
 

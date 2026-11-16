@@ -19,6 +19,12 @@ class CouncilPolicyTests(unittest.TestCase):
             self.assertIn(rule, text)
         self.assertNotIn("then `wait`", text)
 
+    def test_default_members_are_claude_gpt_and_grok(self):
+        text = (ROOT / "skills" / "council" / "SKILL.md").read_text()
+        self.assertIn("latest flagship Claude Opus, GPT Sol, and Grok", text)
+        self.assertIn("| Grok | 7/10 | 9/10 |", text)
+        self.assertNotIn("Gemini Pro", text)
+
 
 if __name__ == "__main__":
     unittest.main()
