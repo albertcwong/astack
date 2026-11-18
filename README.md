@@ -13,10 +13,13 @@ A fork of [tstack](https://github.com/t3dotgg/tstack) with added skills from:
   `yt-dlp`.
 
 The agent skills I use every day, cleaned up so anyone can use them. They work
-in Claude Code, Codex, [pi](https://github.com/badlogic/pi-mono), and
-[Cursor's `agent` CLI](https://cursor.com/cli). Skills that need other models
-(`council`, `review-loop`) call the other CLIs headless (`claude -p`,
-`codex exec`, `pi -p`, `agent -p`), so they behave the same from any of them.
+in Claude Code, Codex, [pi](https://github.com/badlogic/pi-mono),
+[Cursor's `agent` CLI](https://cursor.com/cli), and
+[OpenCode](https://opencode.ai). Skills that need other models (`council`,
+`review-loop`) call the other CLIs headless (`claude -p`, `codex exec`,
+`pi -p`, `agent -p`), so they behave the same from any of these hosts.
+OpenCode runs the skills but is not a headless reviewer: `opencode run` has no
+read-only mode that its plugins cannot override.
 
 ## Skills
 

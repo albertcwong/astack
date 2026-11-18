@@ -75,7 +75,8 @@ class SafetyRuleTests(unittest.TestCase):
         for guard in ("--permission-mode plan", "--mode plan", "-s read-only",
                       "--tools read,grep,find,ls", "--session <session-file>",
                       "quota-limited", "never approval", "does not reset",
-                      "only try routes that honor that choice"):
+                      "only try routes that honor that choice",
+                      "OpenCode is not a reviewer route"):
             self.assertIn(guard, review)
         self.assertIn("`review-loop`", text("full-send"))
         metadata = (ROOT / "skills/review-loop/agents/openai.yaml").read_text()

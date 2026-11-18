@@ -48,7 +48,8 @@ skill may create it. Mark it as verification setup and remove it in cleanup.
 
 Agents read project skills from different directories: Claude Code from
 `.claude/skills/`, Cursor from `.cursor/skills/`, Codex and pi from
-`.agents/skills/`. If the repo already keeps project skills in one of these,
+`.agents/skills/`, OpenCode from `.agents/skills/`, `.claude/skills/` and
+`.opencode/skills/`. If the repo already keeps project skills in one of these,
 write `verify-<app>/` there. Otherwise write it to `.agents/skills/verify-<app>/`.
 Then add a relative symlink to it from each other directory the repo's agents
 use, for example

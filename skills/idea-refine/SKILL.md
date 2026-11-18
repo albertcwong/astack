@@ -70,7 +70,7 @@ When the user invokes this skill with an idea (the user's idea), guide them thro
    - What's been tried before?
    - Why now?
 
-   Use the harness's question tool (`AskUserQuestion` in Claude Code, `request_user_input` in Codex), or a plain numbered list of questions if there is none, to gather this input. Do NOT proceed until you understand who this is for and what success looks like.
+   Use the harness's question tool (`AskUserQuestion` in Claude Code, `request_user_input` in Codex, `question` in OpenCode), or a plain numbered list of questions if there is none, to gather this input. Do NOT proceed until you understand who this is for and what success looks like.
 
 3. **Generate 5-8 idea variations** using these lenses:
    - **Inversion:** "What if we did the opposite?"

@@ -9,7 +9,7 @@ Adapted from MapleShaw's [yt-dlp-downloader-skill](https://github.com/MapleShaw/
 (MIT, as declared in its README).
 
 Turn a media URL and the user's preferences into a download. Use the host
-agent's shell tool; this skill works in Claude Code, Codex, pi, and Cursor.
+agent's shell tool; this skill works in Claude Code, Codex, pi, Cursor, and OpenCode.
 
 ## Download
 

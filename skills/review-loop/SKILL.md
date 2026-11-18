@@ -79,6 +79,10 @@ results as files in the brief because it cannot run Git or tests. Do not describ
 this as an OS sandbox. If the provider rejects high thinking, use a supported
 level and report it; do not claim high effort from the requested flag alone.
 
+OpenCode is not a reviewer route. `opencode run` has no read-only mode: its
+`plan` agent still allows shell commands, and a plugin can override an
+agent's deny rules. From OpenCode, start one of the routes above.
+
 Keep review read-only. Never add permission-bypass flags such as `--force`,
 `--yolo`, or `--dangerously-skip-permissions`. Do not run a PR watcher inside
 the reviewer. Redirect stdin from `/dev/null` so headless runs do not wait for
