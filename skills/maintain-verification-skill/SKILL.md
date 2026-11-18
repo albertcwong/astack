@@ -36,7 +36,7 @@ docs).
 
 0. **Find the target.** Look for a project-local skill with launch and drive
    sections and a feature map, usually `verify-*/` under `.agents/skills/`,
-   `.claude/skills/`, or `.cursor/skills/`. A symlinked copy is the same
+   `.claude/skills/`, `.cursor/skills/`, or `.opencode/skills/`. A symlinked copy is the same
    skill, so edit the real directory. If there are several candidates, ask
    which one. If there are none, stop and point at
    `create-verification-skill` instead of inventing a target.

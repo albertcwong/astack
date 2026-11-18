@@ -17,7 +17,7 @@ those. Otherwise use the latest flagship Claude Opus, GPT Sol, and Grok
 models.
 
 Start the delegates through the headless CLIs, so this works the same from
-Claude Code, Codex, pi, or Cursor's `agent`:
+Claude Code, Codex, pi, Cursor's `agent`, or OpenCode:
 
 | Member | Command |
 | --- | --- |
@@ -42,6 +42,9 @@ Claude Code, Codex, pi, or Cursor's `agent`:
   `claude -p --resume <id>`, `codex exec resume <id>`,
   `agent -p --resume <id>`, or `pi -p --session-id <id>`.
 - For your own provider you may use the harness's native subagent instead.
+- Do not start a delegate with `opencode run`. Its `plan` agent still allows
+  shell commands, and a plugin can override an agent's deny rules, so it
+  cannot guarantee a read-only review.
 - Redirect stdin from `/dev/null` for `codex exec` and `agent -p`, or they
   wait for input. Never pass `--force`/`--yolo` to `agent`; `--mode plan`
   keeps it read-only.
