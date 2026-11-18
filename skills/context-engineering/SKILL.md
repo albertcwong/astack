@@ -148,7 +148,7 @@ In the fresh session, read the rules, spec, plan, task status, and actual `git s
 
 An external harness may automate exit and restart between these boundaries. That loop must treat the artifacts and repository state as the source of truth, preserve human approval gates, and distinguish a completed task from a crashed process. The skill defines the handoff contract; process supervision and model selection belong to the harness.
 
-The same contract applies to delegates. Agents started by `council` and `sol-loop` begin with no conversation history, so their briefs must carry the items above (scope, status, changed files, verification commands, open questions) rather than assume the delegate saw anything.
+The same contract applies to delegates. Agents started by `council` and `review-loop` begin with no conversation history, so their briefs must carry the items above (scope, status, changed files, verification commands, open questions) rather than assume the delegate saw anything.
 
 ## Context Packing Strategies
 

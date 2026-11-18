@@ -9,7 +9,7 @@ import unittest
 ROOT = Path(__file__).resolve().parents[1]
 SKILLS = sorted(p for p in (ROOT / "skills").iterdir() if p.is_dir())
 NAMES = {p.name for p in SKILLS}
-RETIRED = {"full-stop", "modernize", "code-review-and-quality"}
+RETIRED = {"full-stop", "modernize", "code-review-and-quality", "sol-loop"}
 
 
 def text(name):
@@ -63,8 +63,24 @@ class SafetyRuleTests(unittest.TestCase):
             with self.subTest(skill=name):
                 self.assertIn("--base <approved-target>", text(name))
         self.assertIn("wrong base blocks readiness and merging", text("babysit-pr"))
-        self.assertIn("origin/<approved-target>", text("sol-loop"))
-        self.assertNotIn("origin/<default-branch>", text("sol-loop"))
+        self.assertIn("origin/<approved-target>", text("review-loop"))
+        self.assertNotIn("origin/<default-branch>", text("review-loop"))
+
+    def test_review_loop_routes_and_safety(self):
+        review = text("review-loop")
+        for route in ("| 1 | Sonnet | `claude`, `agent`, `pi` |",
+                      "| 2 | Grok | `agent`, `pi` |",
+                      "| 3 | Sol | `codex`, `agent`, `pi` |"):
+            self.assertIn(route, review)
+        for guard in ("--permission-mode plan", "--mode plan", "-s read-only",
+                      "--tools read,grep,find,ls", "--session <session-file>",
+                      "quota-limited", "never approval", "does not reset",
+                      "only try routes that honor that choice"):
+            self.assertIn(guard, review)
+        self.assertIn("`review-loop`", text("full-send"))
+        metadata = (ROOT / "skills/review-loop/agents/openai.yaml").read_text()
+        self.assertIn("$review-loop", metadata)
+        self.assertNotIn("sol-loop", metadata)
 
     def test_filing_a_pr_waits_for_required_checks(self):
         self.assertIn("pr-wait --until green", text("file-pr"))

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Review Loop"
+  short_description: "Iterate on a change with an available reviewer"
+  default_prompt: "Use $review-loop to review this change before I file it."

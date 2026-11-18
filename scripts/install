@@ -19,8 +19,8 @@ from pathlib import Path
 CHECKOUT = Path(__file__).resolve().parents[1]
 LINK_DIRS = {"claude": ".claude/skills", "agents": ".agents/skills"}
 COPY_DIRS = {"codex": ".codex/skills", "cursor": ".cursor/skills", "pi": ".pi/agent/skills"}
-# Skills merged into others. Old copies of these are backed up like other copies.
-RETIRED = {"full-stop", "modernize", "code-review-and-quality"}
+# Removed or renamed skills. Old copies are backed up like other copies.
+RETIRED = {"full-stop", "modernize", "code-review-and-quality", "sol-loop"}
 
 
 def is_skill_dir(path):

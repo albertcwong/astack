@@ -106,7 +106,7 @@ one appears.
    that could. Create an owned topic branch from the project-approved starting
    point; never implement ordinary work directly on an integration/release branch.
 2. **Prove it.** Get proof for every change you made. See "Proof".
-3. **Get feedback.** Use the `sol-loop` skill to verify changes.
+3. **Get feedback.** Use the `review-loop` skill to verify changes.
 4. **File the PR** with the `file-pr` skill. Update against the latest
    project-approved target first, preserving shared history. Set the PR base
    explicitly and verify the actual target after creation. Add one short line

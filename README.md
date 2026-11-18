@@ -15,7 +15,7 @@ A fork of [tstack](https://github.com/t3dotgg/tstack) with added skills from:
 The agent skills I use every day, cleaned up so anyone can use them. They work
 in Claude Code, Codex, [pi](https://github.com/badlogic/pi-mono), and
 [Cursor's `agent` CLI](https://cursor.com/cli). Skills that need other models
-(`council`, `sol-loop`) call the other CLIs headless (`claude -p`,
+(`council`, `review-loop`) call the other CLIs headless (`claude -p`,
 `codex exec`, `pi -p`, `agent -p`), so they behave the same from any of them.
 
 ## Skills
@@ -25,7 +25,7 @@ in Claude Code, Codex, [pi](https://github.com/badlogic/pi-mono), and
 | `full-send` | "full send", "full stop" | Takes a change to a merged PR with nobody watching: proves it, reviews it, files it, babysits it, merges it. "Full stop" does the same work but stops when the PR is ready for you to merge. |
 | `review-handoff` | "prepare review handoff" (on request only) | Links an issue or task to its worktree, committed candidate and reproducible review setup; checks readiness without assuming a project-specific launcher. |
 | `council` | "council" | Gets review from three models from different providers, and loops until they agree. Runs only when you ask. |
-| `sol-loop` | "sol loop" | Reviews a change with GPT Sol in a loop until both agents agree. `full-send` uses it as the default review before filing. |
+| `review-loop` | "review loop" | Reviews a change with one available model, preferring Sonnet, Grok, then Sol. Falls back across agents when quota or access blocks a route. `full-send` uses it before filing. |
 | `file-pr` | "file a PR" | Files a short PR that leads with the problem, not an inventory of changes, then fixes CI until the required checks pass. |
 | `takeover` | "take over", "modernize" | Finishes someone else's PR, branch, or agent thread, and keeps their credit. Also rebases an old PR and decides if it should still exist. |
 | `babysit-pr` | "babysit" | Watches a PR through CI and review bots, and fixes the real findings. |
@@ -45,7 +45,7 @@ in Claude Code, Codex, [pi](https://github.com/badlogic/pi-mono), and
 
 Some skills call others. Install the ones they need too:
 
-- `full-send` uses `track-issue`, `sol-loop`, `file-pr`, and `babysit-pr`. It uses
+- `full-send` uses `track-issue`, `review-loop`, `file-pr`, and `babysit-pr`. It uses
   `review-handoff` only when you ask for a handoff record.
 - `review-handoff` uses the project's existing task records and verification tools.
   It adds a protocol, not a server launcher or automatic status validator.
@@ -78,6 +78,9 @@ Each skill is a symlink into the clone, so one pull updates every agent:
 git -C ~/.local/share/astack/repo pull && ~/.local/share/astack/repo/scripts/install
 ```
 
+The old "sol loop" trigger is retired. Say "review loop" for the default
+preferences, or "review loop with Sol" to request Sol explicitly.
+
 Run `scripts/install` after each pull. It links new skills, removes links to
 deleted ones, and moves any older copies to `~/.local/share/astack/skill-backups/`
 instead of deleting them. `--remove-copies` also moves astack copies out of
@@ -94,11 +97,13 @@ Treat the clone as read-only. Edit skills in a separate checkout and open a PR.
   `gh auth refresh -s project`.
 - `python3`, `yt-dlp`, and `ffmpeg` for the `yt-dlp` skill (`ffmpeg` is used
   for audio extraction and format merging).
-- `council` and `sol-loop` need other providers' models. Install and sign in
-  to `claude`, `codex`, and `agent` for Grok, council's third member. Use `pi`
-  with a provider if you swap in another member, such as Gemini.
-  `pi --list-models <search>` and `agent --list-models` show which model IDs
-  you can reach.
+- `review-loop` needs one reachable reviewer. It prefers Sonnet (`claude`,
+  `agent`, `pi`), then Grok (`agent`, `pi`), then Sol (`codex`, `agent`, `pi`).
+  Install and authenticate at least one supported agent/provider route. Quota
+  failures fall through to the next route, unless you pinned a model or agent.
+- `council` still needs three providers. Install and sign in to `claude`,
+  `codex`, and `agent` for its default members, or configure pi providers.
+  `pi --list-models <search>` and `agent --list-models` list model IDs.
 
 ## Make them yours
 
