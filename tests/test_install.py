@@ -61,6 +61,21 @@ class InstallTests(unittest.TestCase):
         self.run_install("--remove-copies")
         self.assertEqual(sorted(p.name for p in codex.iterdir()), ["imagegen"])
 
+    def test_review_loop_replaces_old_links_and_backs_up_copies(self):
+        agents = self.home / ".agents/skills"
+        agents.mkdir(parents=True)
+        (agents / "sol-loop").symlink_to(ROOT / "skills/sol-loop", target_is_directory=True)
+        make_skill(self.home / ".claude/skills", "sol-loop")
+        make_skill(self.home / ".pi/agent/skills", "sol-loop")
+        self.run_install("--remove-copies")
+        self.assertFalse((agents / "sol-loop").is_symlink())
+        for folder in (".agents/skills", ".claude/skills"):
+            self.assertEqual((self.home / folder / "review-loop").resolve(), ROOT / "skills/review-loop")
+        backups = list((self.home / ".local/share/astack/skill-backups").glob("*/*/sol-loop"))
+        self.assertEqual(len(backups), 2)
+        self.assertTrue(all((p / "SKILL.md").is_file() for p in backups))
+        self.assertEqual(self.run_install("--remove-copies").strip(), "Nothing to change.")
+
     def test_dry_run_changes_nothing(self):
         out = self.run_install("--dry-run")
         self.assertIn("would link", out)

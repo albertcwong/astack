@@ -14,7 +14,7 @@ Never write your own watcher, polling loop, or `sleep` loop. Use one `pr-wait`
 per PR. Every watcher on a GitHub account shares one rate limit.
 
 - **Only the agent that owns the PR watches it.** If you are a delegated
-  reviewer (a council member, a Sol round, any headless `claude -p`,
+  reviewer (a council member, a review-loop round, any headless `claude -p`,
   `codex exec`, `pi -p`, or `agent -p` child), never start `pr-wait`. The parent owns the
   PR. Do not watch PRs you are not working on.
 - **An event is news, not a merge decision.** Check the merge gate yourself.
