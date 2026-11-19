@@ -1,0 +1,4 @@
+interface:
+  display_name: "Git Workflow and Versioning"
+  short_description: "Choose PR targets and plan commits and versions"
+  default_prompt: "Use $git-workflow-and-versioning to plan this change using the repository's branch and release policy."
