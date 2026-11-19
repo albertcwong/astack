@@ -15,9 +15,9 @@ When comparing the two, list required checks and approvals by PR target. Disting
 
 ## Make each change reviewable
 
-- Inspect `git status` and the unstaged and staged diffs. In a mixed tree, stage only the paths or hunks for one intent; leave other people's changes alone. For parallel work use separate worktrees based on the approved integration target.
+- Inspect `git status` and the unstaged and staged diffs. In a mixed tree, stage only the paths or hunks for one intent; leave other people's changes alone. Before committing, verify that the entire index belongs to this increment. If unrelated changes are already staged, stop or use a separate worktree without disturbing the index. For parallel work use separate worktrees based on the approved integration target.
 - Keep a behavior change and its tests together. Split unrelated cleanup, formatting and dependency updates. A useful split can be tested, reviewed and reverted on its own.
-- Run the repository's applicable tests and lint checks. Inspect `git diff --cached` for unintended files, credentials and generated output. Record any checks you could not run.
+- Run the repository's applicable tests and lint checks. Inspect `git diff --cached` for unintended files, credentials and generated output. If unstaged changes affect the tests, test the intended snapshot in isolation or state that it was not independently verified. Record any checks you could not run.
 - Follow the repository's commit convention. Use an imperative subject naming the outcome and a body explaining why when the diff cannot. Commit verified increments, not just the final pile of changes.
 - Resolve conflicts by checking the intent of both sides, then rerun the affected tests on the resolved candidate. Do not discard uncommitted work or rewrite shared history to resolve a conflict.
 
