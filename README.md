@@ -7,8 +7,9 @@ A fork of [tstack](https://github.com/t3dotgg/tstack) with added skills from:
 - [mattpocock/skills](https://github.com/mattpocock/skills):
   `grill-me`, `wait-what`, `track-issue`, and `to-tickets`.
 - [addyosmani/agent-skills](https://github.com/addyosmani/agent-skills):
-  `code-simplification`, `context-engineering`, `idea-refine`, and
-  `ci-cd-and-automation`.
+  `code-simplification`, `context-engineering`, `idea-refine`,
+  `ci-cd-and-automation`, `frontend-ui-engineering`,
+  `api-and-interface-design`, and `browser-testing-with-devtools`.
 - [MapleShaw/yt-dlp-downloader-skill](https://github.com/MapleShaw/yt-dlp-downloader-skill):
   `yt-dlp`.
 
@@ -41,6 +42,9 @@ read-only mode that its plugins cannot override.
 | `context-engineering` | (automatic) | Sets up rules files and manages what the agent keeps in context during long sessions. |
 | `idea-refine` | "refine this idea" | Expands a vague idea into options, stress-tests them, and writes a one-pager with a "Not doing" list. |
 | `ci-cd-and-automation` | (automatic) | Sets up CI quality gates, deploy strategies, and rollback, and feeds CI failures back to the agent. |
+| `frontend-ui-engineering` | (automatic) | Builds responsive, accessible user interfaces that follow the product's design system. |
+| `api-and-interface-design` | (automatic) | Designs stable APIs and typed contracts between components and services. |
+| `browser-testing-with-devtools` | (automatic) | Verifies real browser behavior, visuals, accessibility, and network activity. |
 | `to-tickets` | "split this into tickets" | Breaks an issue, plan, or conversation into small verifiable tickets with blockers, then publishes the approved breakdown. |
 | `track-issue` | "track this", "sync the board" | Finds or creates the issue for each change and keeps its Project Status current, setting it from the PR when you don't. |
 | `leaving-pr-comments` | (automatic) | Formats comments that an agent posts on your behalf. |
@@ -58,6 +62,7 @@ Some skills call others. Install the ones they need too:
 - `file-pr`, `babysit-pr`, and `takeover` use `track-issue`.
 - `full-send` uses a project's `verify-<app>` skill when it has one.
 - `maintain-verification-skill` uses `file-pr`.
+- `frontend-ui-engineering` uses `browser-testing-with-devtools` for live browser proof when available.
 - `idea-refine` hands off to `grill-me` once you pick a direction.
 - `to-tickets` uses `track-issue` to publish unassigned backlog tickets with parent
   and blocker relationships. It can use `idea-refine` or `grill-me` when the
@@ -120,7 +125,9 @@ skills without losing them.
 MIT, copyright 2026 Lauren Tan.
 `grill-me`, `wait-what`, `track-issue`, and `to-tickets` are adapted from
 mattpocock/skills, MIT, copyright 2026 Matt Pocock. `code-simplification`,
-`context-engineering`, `idea-refine`, and `ci-cd-and-automation` are adapted
-from addyosmani/agent-skills, MIT, copyright 2025 Addy Osmani.
+`context-engineering`, `idea-refine`, `ci-cd-and-automation`,
+`frontend-ui-engineering`, `api-and-interface-design`, and
+`browser-testing-with-devtools` are adapted from addyosmani/agent-skills, MIT,
+copyright 2025 Addy Osmani.
 `yt-dlp` is adapted from MapleShaw/yt-dlp-downloader-skill, whose README
 declares MIT licensing.
