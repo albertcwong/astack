@@ -32,7 +32,7 @@ def config():
     return url, data.get('keyring_service', url)
 
 
-def credential(service):
+def credential(url, service):
     if sys.platform == 'darwin':
         cmd = ['/usr/bin/security', 'find-generic-password', '-s', service, '-a', KEY, '-w']
     elif sys.platform.startswith('linux'):
@@ -44,9 +44,11 @@ def credential(service):
             result = subprocess.run(cmd, capture_output=True, text=True, timeout=15)
             if result.returncode == 0 and result.stdout.strip():
                 return result.stdout.strip()
-        except FileNotFoundError:
+        except (FileNotFoundError, subprocess.TimeoutExpired):
             pass
-    return os.environ.get(KEY)
+    if os.environ.get('SONARQUBE_TOKEN_URL', '').rstrip('/') == url:
+        return os.environ.get(KEY)
+    return None
 
 
 def main():
@@ -56,7 +58,7 @@ def main():
     parser.add_argument('fields', nargs='*', metavar='name=value')
     args = parser.parse_args()
     url, service = config()
-    token = credential(service)
+    token = credential(url, service)
     if args.action == 'status':
         print('PRESENT' if token else 'MISSING')
         return

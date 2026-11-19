@@ -23,6 +23,17 @@ class SonarTests(unittest.TestCase):
             sonar.main()
             return out.getvalue(), opener.return_value.open.call_args.args[0]
 
+    def test_timeout_uses_only_matching_environment_token(self):
+        url = 'https://example.org/sonar'
+        with patch.object(sys, 'platform', 'linux'), patch.object(
+            sonar.subprocess, 'run', side_effect=sonar.subprocess.TimeoutExpired('secret-tool', 15)
+        ), patch.dict(sonar.os.environ, {'SONARQUBE_TOKEN': 'fixture'}, clear=True):
+            self.assertIsNone(sonar.credential(url, url))
+            sonar.os.environ['SONARQUBE_TOKEN_URL'] = 'https://other.example'
+            self.assertIsNone(sonar.credential(url, url))
+            sonar.os.environ['SONARQUBE_TOKEN_URL'] = url
+            self.assertEqual(sonar.credential(url, url), 'fixture')
+
     def test_quality_gate_scopes_and_encodes_branch(self):
         out, req = self.invoke('get', 'qualitygates/project_status', 'projectKey=demo', 'branch=a&b')
         self.assertEqual(req.full_url, 'https://example.org/sonar/api/qualitygates/project_status?projectKey=demo&branch=a%26b')

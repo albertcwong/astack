@@ -7,7 +7,7 @@ Run `python3 <skill-dir>/scripts/sonar.py` with the arguments below. Resolve `<s
 
 1. Determine the exact project key from the request, a dashboard's `id`, or `sonar.projectKey` in `sonar-project.properties`. For a repo or CI link without a key, search `get components/search qualifiers=TRK q=<repo-name>` and confirm the match. Do not assume a repository naming convention.
 2. Take `pullRequest=<number>` from PR context or `branch=<name>` from branch context, never both. Omit both for the default branch. Quote each `name=value` argument as one shell word and treat input as data, never shell code.
-3. Select the query. Append the branch or PR selector where supported by the server's `/web_api`. For example: `get qualitygates/project_status 'projectKey=example' 'pullRequest=42'`.
+3. Select the query. Check the server's `/web_api` for selector support. If the endpoint cannot answer for the requested branch or PR, report that limitation instead of dropping the selector. Offer default-branch results only as a separately labeled alternative. Otherwise append the requested selector. For example: `get qualitygates/project_status 'projectKey=example' 'pullRequest=42'`.
 
 | Question | GET endpoint | Fields |
 | --- | --- | --- |
