@@ -43,6 +43,8 @@ read-only mode that its plugins cannot override.
 | `idea-refine` | "refine this idea" | Expands a vague idea into options, stress-tests them, and writes a one-pager with a "Not doing" list. |
 | `ci-cd-and-automation` | (automatic) | Sets up CI quality gates, deploy strategies, and rollback, and feeds CI failures back to the agent. |
 | `frontend-ui-engineering` | (automatic) | Builds responsive, accessible user interfaces that follow the product's design system. |
+| `generate-sonarqube-token` | "set up SonarQube auth" | Guides personal token setup and validates the stored credential. |
+| `sonarqube-code-quality` | "check the SonarQube quality gate" | Reads existing analysis and helps triage findings with confirmation. |
 | `api-and-interface-design` | (automatic) | Designs stable APIs and typed contracts between components and services. |
 | `browser-testing-with-devtools` | (automatic) | Verifies real browser behavior, visuals, accessibility, and network activity. |
 | `to-tickets` | "split this into tickets" | Breaks an issue, plan, or conversation into small verifiable tickets with blockers, then publishes the approved breakdown. |
