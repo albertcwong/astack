@@ -8,7 +8,7 @@ A fork of [tstack](https://github.com/t3dotgg/tstack) with added skills from:
   `grill-me`, `wait-what`, `track-issue`, and `to-tickets`.
 - [addyosmani/agent-skills](https://github.com/addyosmani/agent-skills):
   `code-simplification`, `context-engineering`, `idea-refine`,
-  `ci-cd-and-automation`, `frontend-ui-engineering`,
+  `ci-cd-and-automation`, `git-workflow-and-versioning`, `frontend-ui-engineering`,
   `api-and-interface-design`, and `browser-testing-with-devtools`.
 - [MapleShaw/yt-dlp-downloader-skill](https://github.com/MapleShaw/yt-dlp-downloader-skill):
   `yt-dlp`.
@@ -41,6 +41,7 @@ read-only mode that its plugins cannot override.
 | `code-simplification` | "simplify this" | Makes working code easier to read without changing behavior, one tested step at a time. |
 | `context-engineering` | (automatic) | Sets up rules files and manages what the agent keeps in context during long sessions. |
 | `idea-refine` | "refine this idea" | Expands a vague idea into options, stress-tests them, and writes a one-pager with a "Not doing" list. |
+| `git-workflow-and-versioning` | (automatic) | Chooses the project's PR target, splits changes into reviewable commits, and plans version bumps and release tags. |
 | `ci-cd-and-automation` | (automatic) | Sets up CI quality gates, deploy strategies, and rollback, and feeds CI failures back to the agent. |
 | `frontend-ui-engineering` | (automatic) | Builds responsive, accessible user interfaces that follow the product's design system. |
 | `generate-sonarqube-token` | "set up SonarQube auth" | Guides personal token setup and validates the stored credential. |
@@ -127,7 +128,7 @@ skills without losing them.
 MIT, copyright 2026 Lauren Tan.
 `grill-me`, `wait-what`, `track-issue`, and `to-tickets` are adapted from
 mattpocock/skills, MIT, copyright 2026 Matt Pocock. `code-simplification`,
-`context-engineering`, `idea-refine`, `ci-cd-and-automation`,
+`context-engineering`, `idea-refine`, `ci-cd-and-automation`, `git-workflow-and-versioning`,
 `frontend-ui-engineering`, `api-and-interface-design`, and
 `browser-testing-with-devtools` are adapted from addyosmani/agent-skills, MIT,
 copyright 2025 Addy Osmani.
