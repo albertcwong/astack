@@ -1,5 +1,6 @@
 """Small SonarQube Web API client. Credentials stay in this process."""
 import argparse
+import base64
 import json
 import os
 from pathlib import Path
@@ -72,9 +73,11 @@ def main():
         parser.error('expected name=value')
     fields = urlencode([tuple(field.split('=', 1)) for field in args.fields])
     target = url + '/api/' + endpoint
+    # Token-as-username authentication also works on servers without Bearer support.
+    authorization = base64.b64encode((token + ':').encode('utf-8')).decode('ascii')
     req = Request(target + ('?' + fields if fields and not post else ''),
                   data=fields.encode() if post else None,
-                  headers={'Authorization': 'Bearer ' + token})
+                  headers={'Authorization': 'Basic ' + authorization})
     with build_opener(NoRedirect()).open(req, timeout=30) as response:
         body = response.read()
     if args.action == 'validate':

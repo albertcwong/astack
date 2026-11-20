@@ -1,3 +1,4 @@
+import base64
 import contextlib
 import importlib.util
 import io
@@ -37,7 +38,7 @@ class SonarTests(unittest.TestCase):
     def test_quality_gate_scopes_and_encodes_branch(self):
         out, req = self.invoke('get', 'qualitygates/project_status', 'projectKey=demo', 'branch=a&b')
         self.assertEqual(req.full_url, 'https://example.org/sonar/api/qualitygates/project_status?projectKey=demo&branch=a%26b')
-        self.assertEqual(req.get_header('Authorization'), 'Bearer test-token')
+        self.assertEqual(req.get_header('Authorization'), 'Basic ' + base64.b64encode(b'test-token:').decode('ascii'))
         self.assertNotIn('test-token', out)
 
     def test_triage_uses_form_body(self):
@@ -45,7 +46,11 @@ class SonarTests(unittest.TestCase):
         self.assertEqual(req.data, b'issue=123&text=Triaged+via+pi')
 
     def test_validate_requires_boolean_true(self):
-        self.assertEqual(self.invoke('validate', payload=b'{"valid":true}')[0], 'VALID\n')
+        output, req = self.invoke('validate', payload=b'{"valid":true}')
+        self.assertEqual(output, 'VALID\n')
+        self.assertEqual(req.get_header('Authorization'), 'Basic ' + base64.b64encode(b'test-token:').decode('ascii'))
+        self.assertNotIn('test-token', req.full_url)
+        self.assertNotIn('test-token', output)
         with self.assertRaisesRegex(SystemExit, 'not valid'):
             self.invoke('validate', payload=b'{"valid":false}')
 
