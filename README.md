@@ -2,7 +2,7 @@
 
 A fork of [tstack](https://github.com/t3dotgg/tstack) with added skills from:
 
-- [pstack](https://github.com/cursor/plugins/tree/main/pstack): `unslop`,
+- [pstack](https://github.com/cursor/plugins/tree/main/pstack): `how`, `unslop`,
   `create-verification-skill`, and `maintain-verification-skill`.
 - [mattpocock/skills](https://github.com/mattpocock/skills):
   `grill-me`, `wait-what`, `track-issue`, and `to-tickets`.
@@ -35,6 +35,7 @@ read-only mode that its plugins cannot override.
 | `file-pr` | "file a PR" | Files a short PR that leads with the problem, not an inventory of changes, then fixes CI until the required checks pass. |
 | `takeover` | "take over", "modernize" | Finishes someone else's PR, branch, or agent thread, and keeps their credit. Also rebases an old PR and decides if it should still exist. |
 | `babysit-pr` | "babysit" | Watches a PR through CI and review bots, and fixes the real findings. |
+| `how` | `/how` (Codex: `$how`; pi: `/skill:how`) | Traces how a subsystem works and identifies which package owns a change, with pointers to the code. |
 | `unslop` | "unslop" | Cuts AI tells from prose: docs, PR descriptions, commit messages, comments. |
 | `grill-me` | "grill me" | Interviews you in rounds, with a recommended answer for each question, until every decision in a plan is settled. |
 | `wait-what` | "wait what" | Re-pitches the last message with context, in short plain sentences. |
@@ -131,7 +132,7 @@ skills without losing them.
 
 ## License
 
-[MIT](LICENSE). `unslop` and the verification skills are adapted from pstack,
+[MIT](LICENSE). `how`, `unslop`, and the verification skills are adapted from pstack,
 MIT, copyright 2026 Lauren Tan.
 `grill-me`, `wait-what`, `track-issue`, and `to-tickets` are adapted from
 mattpocock/skills, MIT, copyright 2026 Matt Pocock. `code-simplification`,
