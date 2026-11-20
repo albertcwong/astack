@@ -8,6 +8,8 @@ A fork of [tstack](https://github.com/t3dotgg/tstack) with added skills from:
   `grill-me`, `wait-what`, `track-issue`, and `to-tickets`.
 - [addyosmani/agent-skills](https://github.com/addyosmani/agent-skills):
   `code-simplification`, `context-engineering`, `idea-refine`,
+  `debugging-and-error-recovery`, `test-driven-development`,
+  `source-driven-development`, `deprecation-and-migration`,
   `ci-cd-and-automation`, `git-workflow-and-versioning`, `frontend-ui-engineering`,
   `api-and-interface-design`, `performance-optimization`, and `browser-testing-with-devtools`.
 - [MapleShaw/yt-dlp-downloader-skill](https://github.com/MapleShaw/yt-dlp-downloader-skill):
@@ -41,6 +43,10 @@ read-only mode that its plugins cannot override.
 | `code-simplification` | "simplify this" | Makes working code easier to read without changing behavior, one tested step at a time. |
 | `context-engineering` | (automatic) | Sets up rules files and manages what the agent keeps in context during long sessions. |
 | `idea-refine` | "refine this idea" | Expands a vague idea into options, stress-tests them, and writes a one-pager with a "Not doing" list. |
+| `debugging-and-error-recovery` | (automatic) | Reduces a failure to a reproducible case and tests one explanation at a time. |
+| `test-driven-development` | (automatic) | Proves a behavior change with a test that fails before the fix and passes after it. |
+| `source-driven-development` | (automatic) | Checks version-specific assumptions against primary sources and observed behavior. |
+| `deprecation-and-migration` | (automatic) | Guides callers from an old interface or format to its replacement before removal. |
 | `git-workflow-and-versioning` | (automatic) | Chooses the project's PR target, splits changes into reviewable commits, and plans version bumps and release tags. |
 | `ci-cd-and-automation` | (automatic) | Sets up CI quality gates, deploy strategies, and rollback, and feeds CI failures back to the agent. |
 | `frontend-ui-engineering` | (automatic) | Builds responsive, accessible user interfaces that follow the product's design system. |
@@ -130,8 +136,10 @@ MIT, copyright 2026 Lauren Tan.
 `grill-me`, `wait-what`, `track-issue`, and `to-tickets` are adapted from
 mattpocock/skills, MIT, copyright 2026 Matt Pocock. `code-simplification`,
 `context-engineering`, `idea-refine`, `ci-cd-and-automation`, `git-workflow-and-versioning`,
-`frontend-ui-engineering`, `api-and-interface-design`, `performance-optimization`, and
-`browser-testing-with-devtools` are adapted from addyosmani/agent-skills, MIT,
+`frontend-ui-engineering`, `api-and-interface-design`, `performance-optimization`,
+`browser-testing-with-devtools`, `debugging-and-error-recovery`,
+`test-driven-development`, `source-driven-development`, and
+`deprecation-and-migration` are adapted from addyosmani/agent-skills, MIT,
 copyright 2025 Addy Osmani.
 `yt-dlp` is adapted from MapleShaw/yt-dlp-downloader-skill, whose README
 declares MIT licensing.
