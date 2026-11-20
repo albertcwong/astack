@@ -9,7 +9,7 @@ A fork of [tstack](https://github.com/t3dotgg/tstack) with added skills from:
 - [addyosmani/agent-skills](https://github.com/addyosmani/agent-skills):
   `code-simplification`, `context-engineering`, `idea-refine`,
   `ci-cd-and-automation`, `git-workflow-and-versioning`, `frontend-ui-engineering`,
-  `api-and-interface-design`, and `browser-testing-with-devtools`.
+  `api-and-interface-design`, `performance-optimization`, and `browser-testing-with-devtools`.
 - [MapleShaw/yt-dlp-downloader-skill](https://github.com/MapleShaw/yt-dlp-downloader-skill):
   `yt-dlp`.
 
@@ -46,6 +46,7 @@ read-only mode that its plugins cannot override.
 | `frontend-ui-engineering` | (automatic) | Builds responsive, accessible user interfaces that follow the product's design system. |
 | `generate-sonarqube-token` | "set up SonarQube auth" | Guides personal token setup and validates the stored credential. |
 | `sonarqube-code-quality` | "check the SonarQube quality gate" | Reads existing analysis and helps triage findings with confirmation. |
+| `performance-optimization` | (automatic) | Profiles slow operations and checks whether a change improves the user-facing metric beyond normal variation. |
 | `api-and-interface-design` | (automatic) | Designs stable APIs and typed contracts between components and services. |
 | `browser-testing-with-devtools` | (automatic) | Verifies real browser behavior, visuals, accessibility, and network activity. |
 | `to-tickets` | "split this into tickets" | Breaks an issue, plan, or conversation into small verifiable tickets with blockers, then publishes the approved breakdown. |
@@ -129,7 +130,7 @@ MIT, copyright 2026 Lauren Tan.
 `grill-me`, `wait-what`, `track-issue`, and `to-tickets` are adapted from
 mattpocock/skills, MIT, copyright 2026 Matt Pocock. `code-simplification`,
 `context-engineering`, `idea-refine`, `ci-cd-and-automation`, `git-workflow-and-versioning`,
-`frontend-ui-engineering`, `api-and-interface-design`, and
+`frontend-ui-engineering`, `api-and-interface-design`, `performance-optimization`, and
 `browser-testing-with-devtools` are adapted from addyosmani/agent-skills, MIT,
 copyright 2025 Addy Osmani.
 `yt-dlp` is adapted from MapleShaw/yt-dlp-downloader-skill, whose README
