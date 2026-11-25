@@ -55,7 +55,7 @@ docs).
    CLIs in read-only mode as in `council` (`claude -p`, `codex exec` with stdin
    from `/dev/null`, `agent -p --mode plan`, `pi -p`). Give each reader the
    repo path and its feature file, because delegates start with no history.
-   Without either, read the features yourself, one at a time.
+   If a default reader is over budget, skip it and use an authorized OpenAI model via pi with `--tools read,grep,find,ls`, as in `council`. Respect explicit user pins and project restrictions. Without an eligible reader, read the features yourself, one at a time.
 
 3. **Reconcile.** Confirm every feature file has a summary. Merge overlapping
    recipes into as few app states as practical. Spot-check cited drift, but

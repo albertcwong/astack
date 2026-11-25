@@ -118,9 +118,10 @@ Treat the clone as read-only. Edit skills in a separate checkout and open a PR.
   for audio extraction and format merging).
 - `review-loop` needs one reachable reviewer. It prefers Sonnet (`claude`,
   `agent`, `pi`), then Grok (`agent`, `pi`), then Sol (`codex`, `agent`, `pi`).
-  Install and authenticate at least one supported agent/provider route. Quota
-  failures fall through to the next route, unless you pinned a model or agent.
-- `council` still needs three providers. Install and sign in to `claude`,
+  Install and authenticate at least one supported agent/provider route. When a default delegate exhausts its budget, skip it and use an authorized
+  OpenAI model via pi. An explicit user pin or project restriction still applies.
+- A full `council` still needs three distinct model providers. A pi/OpenAI fallback
+  can supply review feedback but does not count as another provider if OpenAI already replied. Install and sign in to `claude`,
   `codex`, and `agent` for its default members, or configure pi providers.
   `pi --list-models <search>` and `agent --list-models` list model IDs.
 
