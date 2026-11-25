@@ -49,9 +49,9 @@ Claude Code, Codex, pi, Cursor's `agent`, or OpenCode:
   wait for input. Never pass `--force`/`--yolo` to `agent`; `--mode plan`
   keeps it read-only.
 - Delegates get no history. Put the repo path, base, diff command, and intent
-  in the brief.
+  in the brief. For every pi code reviewer, supply paths to the saved diff and test results instead of a Git command.
 
-If a default member hits a budget limit or is already known to be exhausted, do not retry it. Use an authorized OpenAI model via pi for the unfilled review, unless an explicit user pin or project restriction rules it out. Discover the provider and model ID with `pi --list-models`; use supported high reasoning if available. Give pi the saved diff and test results, since the read-only tools cannot run Git. Record the failed route and actual replacement. A listed model or error response is not a completed review.
+If a default member hits a budget limit or is already known to be exhausted, do not retry it. Use an authorized OpenAI model via pi for the unfilled review, unless an explicit user pin or project restriction rules it out. Discover the provider and model ID with `pi --list-models`; use supported high reasoning if available. Use only a route outside the exhausted budget that is approved for this project's data. If the limit is shared across the available routes, stop rather than switching models or credentials on that budget. Record the failed route and actual replacement. A listed model or error response is not a completed review.
 
 Count model providers, not CLI names or proxy aliases. If OpenAI already supplied a review, use that feedback rather than counting OpenAI twice. Report a partial council when fewer than three distinct providers responded; do not claim full consensus or pass a gate that requires three. If an explicitly required member is unavailable, report the blocker.
 
