@@ -24,7 +24,7 @@ Claude Code, Codex, pi, Cursor's `agent`, or OpenCode:
 | Claude | `claude -p --model <id> --effort high --permission-mode plan --output-format json "<brief>"` |
 | GPT | `codex exec -m <id> -c model_reasoning_effort=high -s read-only -C <repo> --json -o <out-file> "<brief>" </dev/null` |
 | Grok | `agent -p --model <id> --mode plan --trust --workspace <repo> --output-format json "<brief>" </dev/null` |
-| Any other (e.g. Gemini) | `pi -p --model <provider/id>:high --exclude-tools edit,write --session-id <uuid> "<brief>"` |
+| pi delegate (including OpenAI fallback) | `pi -p --mode json --provider <provider> --model <model-id> --tools read,grep,find,ls --session <session-file> "<brief>" </dev/null` |
 
 - Resolve model IDs at run time: `pi --list-models <search>` lists what each
   provider exposes, and `agent --list-models` lists Cursor's. That list can
@@ -38,9 +38,9 @@ Claude Code, Codex, pi, Cursor's `agent`, or OpenCode:
   `wait` on all of them in one call. Give each call a long timeout.
 - Save each session ID for later rounds: `session_id` from Claude's JSON,
   `thread_id` from Codex's `thread.started` event, `session_id` from
-  `agent`'s JSON, and the `--session-id` you chose for pi. Follow up with
+  `agent`'s JSON, and a fresh absolute path to a temporary session file for each pi delegate. Follow up with
   `claude -p --resume <id>`, `codex exec resume <id>`,
-  `agent -p --resume <id>`, or `pi -p --session-id <id>`.
+  `agent -p --resume <id>`, or the same pi command with its original session file, model and tool restrictions.
 - For your own provider you may use the harness's native subagent instead.
 - Do not start a delegate with `opencode run`. Its `plan` agent still allows
   shell commands, and a plugin can override an agent's deny rules, so it
@@ -51,8 +51,9 @@ Claude Code, Codex, pi, Cursor's `agent`, or OpenCode:
 - Delegates get no history. Put the repo path, base, diff command, and intent
   in the brief.
 
-If you cannot reach three providers, or a named member is unavailable, report
-it instead of substituting.
+If a default member hits a budget limit or is already known to be exhausted, do not retry it. Use an authorized OpenAI model via pi for the unfilled review, unless an explicit user pin or project restriction rules it out. Discover the provider and model ID with `pi --list-models`; use supported high reasoning if available. Give pi the saved diff and test results, since the read-only tools cannot run Git. Record the failed route and actual replacement. A listed model or error response is not a completed review.
+
+Count model providers, not CLI names or proxy aliases. If OpenAI already supplied a review, use that feedback rather than counting OpenAI twice. Report a partial council when fewer than three distinct providers responded; do not claim full consensus or pass a gate that requires three. If an explicitly required member is unavailable, report the blocker.
 
 Give each delegate the request and relevant context. For review or feedback,
 keep their work read-only. Collect their responses and summarize the useful

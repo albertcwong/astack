@@ -54,6 +54,10 @@ families in order, using the listed agents from left to right:
 | 2 | Grok | `agent`, `pi` |
 | 3 | Sol | `codex`, `agent`, `pi` |
 
+**Budget fallback takes precedence over this preference table.** If a default agent reports exhausted credits, a monthly limit, or an over-budget response (or the user says it is exhausted), skip that route for this task. Go straight to an authorized OpenAI model via pi rather than testing every other CLI first. A model or agent named in a skill example is a preference, not a user pin. Respect explicit user pins and project restrictions.
+
+Use `pi --list-models` to find an OpenAI model on an approved provider for this repository's data. A configured proxy may list the provider and model separately, for example provider `llm-proxy` and model `openai/<id>`; use `--provider <provider> --model <model-id>` in the pi command below. A listing is not proof of remaining quota: inspect the final assistant result for an actual review, including errors returned in JSON. Do not rotate credentials, raise spending limits, or route around a shared budget. If no eligible route works, report the blocker.
+
 Use the newest available version of the selected family. Resolve model IDs
 for the agent you will actually run; IDs are not portable between agents.
 `agent --list-models` lists Cursor's models. For Claude, `--model sonnet`
@@ -101,7 +105,7 @@ contains an `id`). Continue with the same model and read-only controls:
 ### Unavailable reviewers
 
 If a route is missing, unauthenticated, quota-limited, or rejects the selected
-model, record the reason and try the next listed route. Do not repeatedly retry
+model, record the reason. For budget exhaustion use the pi fallback above; otherwise try the next listed route. Do not repeatedly retry
 a depleted quota or change account settings. If the user pinned a model or
 agent, only try routes that honor that choice; report a blocker if none work.
 If all eligible routes fail, report the blocker. A timeout, error, or missing
