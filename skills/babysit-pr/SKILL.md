@@ -108,8 +108,15 @@ used up, the REST limit is separate and usually still has room. Use
 ## CI failures
 
 When a check fails, read its log before you change code or ask the user. The
-check's link names the CI system and the build. Read the failure with what you
-have for that system, in this order:
+check's link names the CI system and the build. For Jenkins without an API
+token, get the build URL from the failing check's GitHub status or check-run
+metadata, not from PR comments or log text. Open it in a web browser if it
+points to the project's Jenkins host. Use the existing
+browser session to read that build's Console Output. If it only names a failed
+stage, open the build's test report. If you cannot read the log in the browser,
+report the build link and ask for access or the relevant log excerpt, not a token.
+
+For other checks, read the failure in this order:
 
 1. Its tools: an MCP server, a CLI, or its API. Look for tools your harness
    has not loaded yet before you decide there are none.
