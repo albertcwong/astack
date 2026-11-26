@@ -60,7 +60,8 @@ fix the cause and push, then wait again. Stop only when the checks are green or
 a failure needs something you cannot do, and report which. If you cannot keep
 watching, say so in your report and name who owns the PR next. If the user asked
 you to babysit it, continue with the full `babysit-pr` skill, including review
-bots.
+bots. For Jenkins without an API token, follow `babysit-pr`'s browser instructions
+to read the failing build's Console Output.
 
 Do not post a follow-up PR comment unless it serves the user's request. When a
 comment is needed, use the `leaving-pr-comments` skill.
