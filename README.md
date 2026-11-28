@@ -5,7 +5,9 @@ A fork of [tstack](https://github.com/t3dotgg/tstack) with added skills from:
 - [pstack](https://github.com/cursor/plugins/tree/main/pstack): `how`, `unslop`,
   `create-verification-skill`, and `maintain-verification-skill`.
 - [mattpocock/skills](https://github.com/mattpocock/skills):
-  `grill-me`, `wait-what`, `track-issue`, and `to-tickets`.
+  `grill-me`, `wait-what`, `track-issue`, `to-tickets`,
+  [`handoff`](https://github.com/mattpocock/skills/blob/bbadaa631c37af594e5a05c9cefacd9956136b18/skills/productivity/handoff/SKILL.md), and the
+  [historical `caveman` skill](https://github.com/mattpocock/skills/blob/221ffca96736afefdc08ca7cf0b3965e9ea83f41/skills/productivity/caveman/SKILL.md).
 - [addyosmani/agent-skills](https://github.com/addyosmani/agent-skills):
   `code-simplification`, `context-engineering`, `idea-refine`,
   `debugging-and-error-recovery`, `test-driven-development`,
@@ -29,6 +31,7 @@ read-only mode that its plugins cannot override.
 | Skill | Say | What it does |
 |---|---|---|
 | `full-send` | "full send", "full stop" | Takes a change to a merged PR with nobody watching: proves it, reviews it, files it, babysits it, merges it. "Full stop" does the same work but stops when the PR is ready for you to merge. |
+| `handoff` | "handoff", optionally followed by a focus | Writes a private note a fresh agent can read to continue the task. |
 | `review-handoff` | "prepare review handoff" (on request only) | Links an issue or task to its worktree, committed candidate and reproducible review setup; checks readiness without assuming a project-specific launcher. |
 | `council` | "council" | Gets review from three models from different providers, and loops until they agree. Runs only when you ask. |
 | `review-loop` | "review loop" | Reviews a change with one available model, preferring Sonnet, Grok, then Sol. Falls back across agents when quota or access blocks a route. `full-send` uses it before filing. |
@@ -38,6 +41,7 @@ read-only mode that its plugins cannot override.
 | `how` | `/how` (Codex: `$how`; pi: `/skill:how`) | Traces how a subsystem works and identifies which package owns a change, with pointers to the code. |
 | `unslop` | "unslop" | Cuts AI tells from prose: docs, PR descriptions, commit messages, comments. |
 | `grill-me` | "grill me" | Interviews you in rounds, with a recommended answer for each question, until every decision in a plan is settled. |
+| `caveman` | "caveman mode" | Keeps chat replies terse until you say "normal mode". Code, docs, and PRs keep their normal style. |
 | `wait-what` | "wait what" | Re-pitches the last message with context, in short plain sentences. |
 | `create-verification-skill` | "create verification skill" | Writes a project `verify-<app>` skill that launches the app, drives it like a user, and captures proof. |
 | `maintain-verification-skill` | "maintain verification skill" | Checks a `verify-<app>` skill against the source and the live app, and files one PR of fixes. |
@@ -135,7 +139,7 @@ skills without losing them.
 
 [MIT](LICENSE). `how`, `unslop`, and the verification skills are adapted from pstack,
 MIT, copyright 2026 Lauren Tan.
-`grill-me`, `wait-what`, `track-issue`, and `to-tickets` are adapted from
+`caveman`, `handoff`, `grill-me`, `wait-what`, `track-issue`, and `to-tickets` are adapted from
 mattpocock/skills, MIT, copyright 2026 Matt Pocock. `code-simplification`,
 `context-engineering`, `idea-refine`, `ci-cd-and-automation`, `git-workflow-and-versioning`,
 `frontend-ui-engineering`, `api-and-interface-design`, `performance-optimization`,
